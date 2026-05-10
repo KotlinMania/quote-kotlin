@@ -18,3 +18,11 @@ dependencyResolutionManagement {
 
 rootProject.name = "quote-kotlin"
 
+val procMacro2Local = file("../proc-macro2-kotlin")
+if (procMacro2Local.exists()) {
+    includeBuild(procMacro2Local) {
+        dependencySubstitution {
+            substitute(module("io.github.kotlinmania:proc-macro2-kotlin")).using(project(":"))
+        }
+    }
+}
