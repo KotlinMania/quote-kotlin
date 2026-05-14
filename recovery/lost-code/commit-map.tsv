@@ -1,0 +1,9 @@
+commit	parents	subject	author	date
+4238d59f4cd060374bf35438b056c9967374463f	9671c8ddfbac92d74f7d5a992bfcec4bddb75a12	Refresh project metadata	Sydney Renee <sydney@solace.ofharmony.ai>	2026-05-08 01:21:58 -0700
+4690ef84b44945e2f2d08633e12ddcfb91a24916	8adfe40a6cc136e64a2a1891136bd0584475ef69	chore: sync .github/ config from mime-kotlin	Sydney Renee <sydney@solace.ofharmony.ai>	2026-05-11 18:01:22 -0700
+589f77e87634ab03458cf13eced9436ee9d3b6c9	4238d59f4cd060374bf35438b056c9967374463f 53971927bc2b772f9348028c2fd4bb8f27706566	Merge origin/main	Sydney Renee <sydney@solace.ofharmony.ai>	2026-05-08 02:07:59 -0700
+74007579a23f38270781ece8d986e7146c848897	85bbbb5001114fc3f6faab98a46240c6954d92b6	Port quote spanned trait	Sydney Renee <sydney@solace.ofharmony.ai>	2026-05-10 08:14:54 -0700
+85bbbb5001114fc3f6faab98a46240c6954d92b6	589f77e87634ab03458cf13eced9436ee9d3b6c9	Port quote token conversion helpers	Sydney Renee <sydney@solace.ofharmony.ai>	2026-05-08 02:13:01 -0700
+9671c8ddfbac92d74f7d5a992bfcec4bddb75a12	f3d2180d646d457db30adf73584ef13ce666942c	Safety commit local changes	Sydney Renee <sydney@solace.ofharmony.ai>	2026-05-06 19:21:18 -0700
+c0725d24ff20c7906ebfa9603739f311d5257e64	c8de7092a86f2e4853d6556b4714f4e36769ff17	Conform build/CI/license to starlark-kotlin template	Sydney Renee <sydney@solace.ofharmony.ai>	2026-05-06 11:00:22 -0700
+f3d2180d646d457db30adf73584ef13ce666942c	c0725d24ff20c7906ebfa9603739f311d5257e64	Remove file-count scope limit	Sydney Renee <sydney@solace.ofharmony.ai>	2026-05-06 18:38:33 -0700

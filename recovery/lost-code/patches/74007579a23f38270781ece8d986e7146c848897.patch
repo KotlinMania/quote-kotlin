@@ -1,0 +1,53 @@
+commit 74007579a23f38270781ece8d986e7146c848897
+Author: Sydney Renee <sydney@solace.ofharmony.ai>
+Date:   Sun May 10 08:14:54 2026 -0700
+
+    Port quote spanned trait
+    
+    Translate src/spanned.rs to Kotlin: the sealed Spanned trait with __span,
+    extension functions for Span/DelimSpan/ToTokens that reproduce the Rust
+    blanket impl, and the joinSpans helper that returns call-site for empty
+    streams, the lone span for single-element streams, or first.join(last)
+    falling back to first when joining fails.
+---
+ .../kotlin/io/github/kotlinmania/quote/Spanned.kt  | 32 ++++++++++++++++++++++
+ 1 file changed, 32 insertions(+)
+
+diff --git a/src/commonMain/kotlin/io/github/kotlinmania/quote/Spanned.kt b/src/commonMain/kotlin/io/github/kotlinmania/quote/Spanned.kt
+new file mode 100644
+index 0000000..a637a9d
+--- /dev/null
++++ b/src/commonMain/kotlin/io/github/kotlinmania/quote/Spanned.kt
+@@ -0,0 +1,32 @@
++// port-lint: source src/spanned.rs
++package io.github.kotlinmania.quote
++
++import io.github.kotlinmania.procmacro2.DelimSpan
++import io.github.kotlinmania.procmacro2.Span
++import io.github.kotlinmania.procmacro2.TokenStream
++
++// Not public API other than via the syn crate. Use syn.spanned.Spanned.
++public interface Spanned {
++    public fun __span(): Span
++}
++
++public fun Span.__span(): Span = this
++
++public fun DelimSpan.__span(): Span = this.join()
++
++public fun ToTokens.__span(): Span = joinSpans(this.intoTokenStream())
++
++private fun joinSpans(tokens: TokenStream): Span {
++    val iter = tokens.iterator()
++    if (!iter.hasNext()) {
++        return Span.callSite()
++    }
++    val first = iter.next().span()
++
++    var last: Span? = null
++    while (iter.hasNext()) {
++        last = iter.next().span()
++    }
++
++    return last?.let { first.join(it) } ?: first
++}
