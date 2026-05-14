@@ -369,17 +369,21 @@ val codeqlCompileJvm = tasks.register<JavaExec>("codeqlCompileJvm") {
 
         // Extract classes.jar from each resolved AAR so kotlinc can reference
         // the JVM class files. An AAR is a ZIP; classes.jar is a named entry.
+        // Uses Gradle's zipTree()Copying to avoid JDK classpath issues in the
+        // Kotlin DSL script compiler.
         val extractedJars = mutableListOf<File>()
         for (aar in codeqlAndroidAar.resolve()) {
             val aarName = aar.nameWithoutExtension
             val extractTarget = aarExtractDir.get().asFile.resolve(aarName)
             extractTarget.mkdirs()
-            java.util.zip.ZipInputStream(aar.inputStream()).use { zip ->
-                generateSequence { zip.nextEntry }.filter { it.name == "classes.jar" }.forEach {
-                    val jarDest = extractTarget.resolve("classes.jar")
-                    jarDest.outputStream().use { out -> zip.copyTo(out) }
-                    extractedJars += jarDest
-                }
+            copy {
+                from(zipTree(aar))
+                include("classes.jar")
+                into(extractTarget)
+            }
+            val classesJar = extractTarget.resolve("classes.jar")
+            if (classesJar.exists()) {
+                extractedJars += classesJar
             }
         }
 
