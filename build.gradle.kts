@@ -317,15 +317,29 @@ val codeqlSourceClasspath: Configuration by configurations.creating {
     isCanBeConsumed = false
 }
 
+val codeqlAndroidAar: Configuration by configurations.creating {
+    description = "Android AAR artifacts for CodeQL classpath extraction (classes.jar only)"
+    isCanBeResolved = true
+    isCanBeConsumed = false
+}
+
 dependencies {
     codeqlKotlinc("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.3.21")
+    // Mirror the commonMain dependency set, pinned to the JVM artifact variant
+    // since the JVM-flavoured kotlinx packages publish multiplatform metadata
+    // that requires a target attribute to resolve.
     codeqlSourceClasspath("org.jetbrains.kotlin:kotlin-stdlib:2.3.21")
     codeqlSourceClasspath("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.11.0")
     codeqlSourceClasspath("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.11.0")
     codeqlSourceClasspath("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.11.0")
     codeqlSourceClasspath("org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.8.0")
     codeqlSourceClasspath("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:0.4.0")
-    codeqlSourceClasspath("io.github.kotlinmania:proc-macro2-kotlin:0.1.1")
+    // proc-macro2-kotlin is published as KMP multiplatform metadata (no JVM
+    // variant). The Android target publishes a separate -android module
+    // containing an AAR with classes.jar inside. We download the AAR via
+    // codeqlAndroidAar and extract classes.jar at task time so kotlinc gets
+    // real .class files for the proc-macro2 types.
+    codeqlAndroidAar("io.github.kotlinmania:proc-macro2-kotlin-android:0.1.1@aar")
 }
 
 val codeqlCompileJvm = tasks.register<JavaExec>("codeqlCompileJvm") {
@@ -342,13 +356,33 @@ val codeqlCompileJvm = tasks.register<JavaExec>("codeqlCompileJvm") {
     val outDir = layout.buildDirectory.dir("classes/kotlin/codeql-jvm")
     val sources = fileTree("src/commonMain/kotlin") { include("**/*.kt") }
     val sentinelDir = layout.buildDirectory.dir("generated/codeql-empty-source")
+    val aarExtractDir = layout.buildDirectory.dir("codeql-aar-classes")
     inputs.files(sources).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.files(codeqlSourceClasspath).withNormalizer(ClasspathNormalizer::class.java)
+    inputs.files(codeqlAndroidAar)
     outputs.dir(outDir)
     outputs.dir(sentinelDir)
+    outputs.dir(aarExtractDir)
 
     doFirst {
         outDir.get().asFile.mkdirs()
+
+        // Extract classes.jar from each resolved AAR so kotlinc can reference
+        // the JVM class files. An AAR is a ZIP; classes.jar is a named entry.
+        val extractedJars = mutableListOf<File>()
+        for (aar in codeqlAndroidAar.resolve()) {
+            val aarName = aar.nameWithoutExtension
+            val extractTarget = aarExtractDir.get().asFile.resolve(aarName)
+            extractTarget.mkdirs()
+            java.util.zip.ZipInputStream(aar.inputStream()).use { zip ->
+                generateSequence { zip.nextEntry }.filter { it.name == "classes.jar" }.forEach {
+                    val jarDest = extractTarget.resolve("classes.jar")
+                    jarDest.outputStream().use { out -> zip.copyTo(out) }
+                    extractedJars += jarDest
+                }
+            }
+        }
+
         val sourceFiles = sources.files.toMutableList()
         if (sourceFiles.isEmpty()) {
             val sentinelFile = sentinelDir.get().asFile.resolve(
@@ -368,11 +402,12 @@ val codeqlCompileJvm = tasks.register<JavaExec>("codeqlCompileJvm") {
             )
             sourceFiles += sentinelFile
         }
+        val fullClasspath = codeqlSourceClasspath.asPath + File.pathSeparator + extractedJars.joinToString(File.pathSeparator) { it.absolutePath }
         args = listOf(
             "-d", outDir.get().asFile.absolutePath,
-            "-classpath", codeqlSourceClasspath.asPath,
+            "-classpath", fullClasspath,
             "-jvm-target", "21",
-            "-no-stdlib",
+            "-no-stdlib", // stdlib comes via the classpath
             "-no-reflect",
             "-language-version", "2.3",
             "-api-version", "2.3",
