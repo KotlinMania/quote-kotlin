@@ -1,3 +1,6 @@
+import org.gradle.api.tasks.testing.AbstractTestTask
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
@@ -15,7 +18,7 @@ plugins {
 }
 
 group = "io.github.kotlinmania"
-version = "0.1.0"
+version = "0.1.1"
 
 val androidSdkDir: String? =
     providers.environmentVariable("ANDROID_SDK_ROOT").orNull
@@ -42,35 +45,89 @@ kotlin {
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
+    // ---- Maximal Kotlin 2.3.21 target coverage ----
+    //
+    // Every non-JVM Kotlin target the compiler supports is declared here.
+    // `jvm()` is intentionally omitted: this workspace standardizes on
+    // strict-KMP (no JVM-only target — see threadlocal-kotlin for the one
+    // documented exception). CodeQL Kotlin extraction is handled by the
+    // dedicated `codeqlCompileJvm` JavaExec task further down this file
+    // instead of a real jvm() target, because the K2 multiplatform pipeline
+    // for `compileKotlinJvm` bypasses the legacy K2JVMCompiler.doExecute
+    // path the CodeQL Java agent hooks.
+
     val xcf = XCFramework("Quote")
 
+    // Apple desktop
     macosArm64 {
-        binaries.framework {
-            baseName = "Quote"
-            xcf.add(this)
-        }
+        binaries.framework { baseName = "Quote"; xcf.add(this) }
     }
-    linuxX64()
-    mingwX64()
+    // macosX64 was removed in Kotlin 2.3 — "Target is no longer available."
+
+    // iOS
     iosArm64 {
-        binaries.framework {
-            baseName = "Quote"
-            xcf.add(this)
-        }
+        binaries.framework { baseName = "Quote"; xcf.add(this) }
     }
     iosSimulatorArm64 {
-        binaries.framework {
-            baseName = "Quote"
-            xcf.add(this)
-        }
+        binaries.framework { baseName = "Quote"; xcf.add(this) }
     }
+    iosX64 {
+        binaries.framework { baseName = "Quote"; xcf.add(this) }
+    }
+
+    // tvOS
+    tvosArm64 {
+        binaries.framework { baseName = "Quote"; xcf.add(this) }
+    }
+    tvosSimulatorArm64 {
+        binaries.framework { baseName = "Quote"; xcf.add(this) }
+    }
+    // tvosX64 was removed in Kotlin 2.3 — "Target is no longer available."
+
+    // watchOS
+    watchosArm32 {
+        binaries.framework { baseName = "Quote"; xcf.add(this) }
+    }
+    watchosArm64 {
+        binaries.framework { baseName = "Quote"; xcf.add(this) }
+    }
+    watchosDeviceArm64 {
+        binaries.framework { baseName = "Quote"; xcf.add(this) }
+    }
+    watchosSimulatorArm64 {
+        binaries.framework { baseName = "Quote"; xcf.add(this) }
+    }
+    // watchosX64 was removed in Kotlin 2.3 — "Target is no longer available."
+
+    // Linux
+    linuxX64()
+    linuxArm64()
+
+    // Windows
+    mingwX64()
+
+    // Android native (NDK targets — separate from the Android JVM library below)
+    androidNativeArm32()
+    androidNativeArm64()
+    androidNativeX86()
+    androidNativeX64()
+
+    // Web — JS (browser + nodejs runtimes on a single target)
     js {
         browser()
         nodejs()
     }
+
+    // Web — WasmJS
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser()
+        nodejs()
+    }
+
+    // Web — WasmWASI (experimental; nodejs runtime via wasi-preview1)
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmWasi {
         nodejs()
     }
 
@@ -106,12 +163,31 @@ kotlin {
     jvmToolchain(21)
 }
 
+// Show every test event in the CI log so runs are auditable.
+tasks.withType<AbstractTestTask>().configureEach {
+    testLogging {
+        events(
+            TestLogEvent.STARTED,
+            TestLogEvent.PASSED,
+            TestLogEvent.SKIPPED,
+            TestLogEvent.FAILED,
+            TestLogEvent.STANDARD_OUT,
+            TestLogEvent.STANDARD_ERROR,
+        )
+        exceptionFormat = TestExceptionFormat.FULL
+        showCauses = true
+        showExceptions = true
+        showStackTraces = true
+        showStandardStreams = true
+    }
+}
+
 rootProject.extensions.configure<NodeJsEnvSpec>("kotlinNodeJsSpec") {
-    version.set("22.22.2")
+    version.set("24.15.0")
 }
 
 rootProject.extensions.configure<WasmNodeJsEnvSpec>("kotlinWasmNodeJsSpec") {
-    version.set("22.22.2")
+    version.set("24.15.0")
 }
 
 rootProject.extensions.configure<YarnRootEnvSpec>("kotlinYarnSpec") {
@@ -201,19 +277,33 @@ mavenPublishing {
 // ---------------------------------------------------------------------------
 // CodeQL Java/Kotlin extraction task
 //
-// `.github/workflows/codeql.yml` invokes `./gradlew codeqlCompileJvm` to feed
-// kotlinc-compiled commonMain through the CodeQL Java agent. The KMP build
-// engages the K2 phased pipeline that bypasses the agent's
-// `K2JVMCompiler.doExecute` hook, so this task runs a separate single-target
-// JVM compile of commonMain sources via JavaExec with NO multiplatform flags,
-// causing kotlinc to dispatch through the legacy path the agent hooks.
+// The Kotlin Multiplatform build above runs on Kotlin 2.3.21. The K2 phased
+// compilation pipeline (`org.jetbrains.kotlin.cli.pipeline.JvmCliPipeline`)
+// is engaged whenever `-Xmulti-platform`/`-Xfragments=…` are in the kotlinc
+// args — that's KGP's standard multiplatform compileKotlinJvm shape. The
+// CodeQL Java agent (`codeql-java-agent.jar` v2.25.4) hooks
+// `K2JVMCompiler.doExecute(…)`, which the new pipeline bypasses, so an
+// agent-instrumented KMP compileKotlinJvm produces zero Kotlin TRAP.
 //
-// When commonMain has no .kt files (pre-port repo with only .gitkeep), the
-// task writes a tiny placeholder under `build/generated/codeql-empty-source/`
-// so kotlinc always has at least one source. Skipping the task with onlyIf
-// is intentionally avoided: a silent skip is indistinguishable in CI from a
-// real run, which is abusable. The sentinel approach forces the compile to
-// execute every time so any future drift is caught.
+// Fix: run a separate single-target JVM compile of commonMain sources via
+// JavaExec with NO multiplatform flags. Without `-Xmulti-platform` /
+// `-Xfragments=…` in the args, kotlinc 2.3.21 still dispatches through the
+// legacy `K2JVMCompiler.doExecute` path, the agent's class-load hook fires,
+// and per-source-file `*.kt.trap.gz` files get written.
+//
+// The agent is attached via `JAVA_TOOL_OPTIONS=-javaagent:codeql-java-agent.jar=java,kotlin`
+// (set by the CI step around this task), so the JavaExec subprocess loads it
+// at JVM startup independently of any LD_PRELOAD propagation chain.
+//
+// This task is for CodeQL extraction only. The output `.class` files are not
+// published and are not part of any KMP target.
+//
+// When commonMain has no Kotlin source (pre-port repos with only .gitkeep),
+// kotlinc 2.3.21 invoked with zero source args drops to REPL mode and fails.
+// Write a tiny placeholder under `build/generated/codeql-empty-source/`
+// so the task always runs and CodeQL always produces TRAP — a skipped task
+// would be silent and indistinguishable from a successful extraction in CI
+// logs.
 
 val codeqlKotlinc: Configuration by configurations.creating {
     description = "Kotlin compiler (CodeQL extraction target only - not published)"
@@ -225,28 +315,31 @@ val codeqlSourceClasspath: Configuration by configurations.creating {
     description = "Runtime classpath for CodeQL extraction of commonMain sources"
     isCanBeResolved = true
     isCanBeConsumed = false
-    attributes {
-        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class.java, Usage.JAVA_RUNTIME))
-        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category::class.java, Category.LIBRARY))
-        attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements::class.java, LibraryElements.JAR))
-        attribute(TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE, objects.named(TargetJvmEnvironment::class.java, TargetJvmEnvironment.ANDROID))
-        attribute(
-            org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.attribute,
-            org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.androidJvm,
-        )
-        attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, ArtifactTypeDefinition.JAR_TYPE)
-    }
+}
+
+val codeqlAndroidAar: Configuration by configurations.creating {
+    description = "Android AAR artifacts for CodeQL classpath extraction (classes.jar only)"
+    isCanBeResolved = true
+    isCanBeConsumed = false
 }
 
 dependencies {
     codeqlKotlinc("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.3.21")
+    // Mirror the commonMain dependency set, pinned to the JVM artifact variant
+    // since the JVM-flavoured kotlinx packages publish multiplatform metadata
+    // that requires a target attribute to resolve.
     codeqlSourceClasspath("org.jetbrains.kotlin:kotlin-stdlib:2.3.21")
     codeqlSourceClasspath("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.11.0")
     codeqlSourceClasspath("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.11.0")
     codeqlSourceClasspath("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.11.0")
     codeqlSourceClasspath("org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.8.0")
     codeqlSourceClasspath("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:0.4.0")
-    codeqlSourceClasspath("io.github.kotlinmania:proc-macro2-kotlin:0.1.1")
+    // proc-macro2-kotlin is published as KMP multiplatform metadata (no JVM
+    // variant). The Android target publishes a separate -android module
+    // containing an AAR with classes.jar inside. We download the AAR via
+    // codeqlAndroidAar and extract classes.jar at task time so kotlinc gets
+    // real .class files for the proc-macro2 types.
+    codeqlAndroidAar("io.github.kotlinmania:proc-macro2-kotlin-android:0.1.1@aar")
 }
 
 val codeqlCompileJvm = tasks.register<JavaExec>("codeqlCompileJvm") {
@@ -263,13 +356,37 @@ val codeqlCompileJvm = tasks.register<JavaExec>("codeqlCompileJvm") {
     val outDir = layout.buildDirectory.dir("classes/kotlin/codeql-jvm")
     val sources = fileTree("src/commonMain/kotlin") { include("**/*.kt") }
     val sentinelDir = layout.buildDirectory.dir("generated/codeql-empty-source")
+    val aarExtractDir = layout.buildDirectory.dir("codeql-aar-classes")
     inputs.files(sources).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.files(codeqlSourceClasspath).withNormalizer(ClasspathNormalizer::class.java)
+    inputs.files(codeqlAndroidAar)
     outputs.dir(outDir)
     outputs.dir(sentinelDir)
+    outputs.dir(aarExtractDir)
 
     doFirst {
         outDir.get().asFile.mkdirs()
+
+        // Extract classes.jar from each resolved AAR so kotlinc can reference
+        // the JVM class files. An AAR is a ZIP; classes.jar is a named entry.
+        // Uses Gradle's zipTree()Copying to avoid JDK classpath issues in the
+        // Kotlin DSL script compiler.
+        val extractedJars = mutableListOf<File>()
+        for (aar in codeqlAndroidAar.resolve()) {
+            val aarName = aar.nameWithoutExtension
+            val extractTarget = aarExtractDir.get().asFile.resolve(aarName)
+            extractTarget.mkdirs()
+            copy {
+                from(zipTree(aar))
+                include("classes.jar")
+                into(extractTarget)
+            }
+            val classesJar = extractTarget.resolve("classes.jar")
+            if (classesJar.exists()) {
+                extractedJars += classesJar
+            }
+        }
+
         val sourceFiles = sources.files.toMutableList()
         if (sourceFiles.isEmpty()) {
             val sentinelFile = sentinelDir.get().asFile.resolve(
@@ -289,11 +406,12 @@ val codeqlCompileJvm = tasks.register<JavaExec>("codeqlCompileJvm") {
             )
             sourceFiles += sentinelFile
         }
+        val fullClasspath = codeqlSourceClasspath.asPath + File.pathSeparator + extractedJars.joinToString(File.pathSeparator) { it.absolutePath }
         args = listOf(
             "-d", outDir.get().asFile.absolutePath,
-            "-classpath", codeqlSourceClasspath.asPath,
+            "-classpath", fullClasspath,
             "-jvm-target", "21",
-            "-no-stdlib",
+            "-no-stdlib", // stdlib comes via the classpath
             "-no-reflect",
             "-language-version", "2.3",
             "-api-version", "2.3",
@@ -307,12 +425,15 @@ val codeqlCompileJvm = tasks.register<JavaExec>("codeqlCompileJvm") {
 tasks.register("test") {
     group = "verification"
     description =
-        "Runs a portable test suite (macOS + JS + WasmJS). Android and non-host native targets are intentionally excluded."
+        "Runs the host-portable test suite (macOS + JS + WasmJS + Android unit). " +
+        "Non-host native targets (mingwX64, linuxX64) only run on their own host."
 
     val defaultTestTasks = listOf(
         "macosArm64Test",
         "jsNodeTest",
         "wasmJsNodeTest",
+        "compileAndroidMain",
+        "assembleUnitTest",
     )
 
     dependsOn(defaultTestTasks.mapNotNull { taskName -> tasks.findByName(taskName) })
