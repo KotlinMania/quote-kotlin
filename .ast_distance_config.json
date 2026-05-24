@@ -1,5 +1,6 @@
 {
   "type": "port",
+  "parity_mode": false,
   "name": "quote-kotlin",
   "source": {
     "path": "tmp/quote/src",
