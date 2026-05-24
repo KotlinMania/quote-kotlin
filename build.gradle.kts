@@ -60,10 +60,18 @@ kotlin {
         binaries.framework { baseName = "Quote"; xcf.add(this) }
     }
     iosSimulatorArm64 {
-        binaries.framework { baseName = "Quote"; xcf.add(this) }
+        binaries.framework {
+            baseName = "Quote"
+            isStatic = true
+            xcf.add(this)
+        }
     }
     iosX64 {
-        binaries.framework { baseName = "Quote"; xcf.add(this) }
+        binaries.framework {
+            baseName = "Quote"
+            isStatic = true
+            xcf.add(this)
+        }
     }
 
     // tvOS
