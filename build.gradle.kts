@@ -268,7 +268,27 @@ fun installProjectAndroidSdk(execOperations: ExecOperations) {
     println("setup-android-sdk: done; SDK at $projectAndroidSdkDir")
 }
 
-installProjectAndroidSdk(serviceOf())
+// Configuration-time: only make the project-local SDK *location* resolvable
+// for AGP (writes local.properties -> .android-sdk). Cheap, no network. The
+// SDK package download is deferred to the `ensureAndroidSdk` task that every
+// AGP Android task depends on, so non-Android invocations (jsTest, jvmTest,
+// swiftExportSmokeTest, native/androidNative links) never touch the network.
+writeAndroidLocalProperties()
+
+// AGP validates the SDK packages while determining the dependencies of
+// `compileAndroidMain` (task-graph construction, before any task executes), so a
+// plain `dependsOn` cannot supply them in time. Detect Android intent from the
+// requested task names and install eagerly only in that case; non-Android builds
+// (jsTest, jvmTest, swiftExportSmokeTest, native/androidNative links) skip it.
+fun requestedTaskWantsAndroid(rawTaskName: String): Boolean {
+    val taskName = rawTaskName.substringAfterLast(':')
+    if (taskName.contains("AndroidNative")) return false // Kotlin/Native, no SDK
+    if (taskName.contains("Android")) return true // direct AGP tasks
+    return taskName in setOf("build", "assemble", "check") // aggregates pulling android
+}
+if (gradle.startParameter.taskNames.any(::requestedTaskWantsAndroid)) {
+    installProjectAndroidSdk(serviceOf())
+}
 
 val ensureAndroidSdk by tasks.registering {
     group = "setup"
@@ -279,7 +299,15 @@ val ensureAndroidSdk by tasks.registering {
     }
 }
 
-tasks.matching { it.name == "compileAndroidMain" }.configureEach {
+// Wire SDK setup to every AGP Android task (the `android` KMP target), but NOT
+// to androidNative* (Kotlin/Native targets that don't use the Android SDK) nor
+// to the installer task itself.
+tasks.matching { task ->
+    val taskName = task.name
+    taskName != "ensureAndroidSdk" &&
+        taskName.contains("Android") &&
+        !taskName.contains("AndroidNative")
+}.configureEach {
     dependsOn(ensureAndroidSdk)
 }
 
