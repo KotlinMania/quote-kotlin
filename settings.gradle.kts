@@ -15,4 +15,4 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "quote-kotlin"
+rootProject.name = "proc-macro-kotlin"
