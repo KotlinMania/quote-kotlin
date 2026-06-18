@@ -91,7 +91,11 @@ public fun Double.toTokens(tokens: TokenStream) {
     tokens.append(Literal.f64Suffixed(this))
 }
 
-public fun Char.toTokens(tokens: TokenStream) {
+// Named distinctly from the numeric `toTokens` overloads: Kotlin `Char` and
+// `UShort` both export to Swift `UInt16` (Char -> Unicode.UTF16.CodeUnit), so a
+// uniform `Char.toTokens` collides with `UShort.toTokens` in the Swift Export
+// bridge. Mirrors the `ByteArray.toCStringTokens` naming below.
+public fun Char.toCharTokens(tokens: TokenStream) {
     tokens.append(Literal.character(this))
 }
 
