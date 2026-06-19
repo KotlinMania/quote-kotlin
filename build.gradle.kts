@@ -268,24 +268,33 @@ fun installProjectAndroidSdk(execOperations: ExecOperations) {
     println("setup-android-sdk: done; SDK at $projectAndroidSdkDir")
 }
 
-// Configuration-time: only make the project-local SDK *location* resolvable
-// for AGP (writes local.properties -> .android-sdk). Cheap, no network. The
-// SDK package download is deferred to the `ensureAndroidSdk` task that every
-// AGP Android task depends on, so non-Android invocations (jsTest, jvmTest,
-// swiftExportSmokeTest, native/androidNative links) never touch the network.
+// ----------------------------------------------------------------------------
+// Android SDK setup is gated to follow the requested task. It must never run for
+// non-Android invocations (jsTest, jvmTest, swiftExportSmokeTest, native /
+// androidNative links) -- an unconditional install here is what made the SDK
+// download appear on every machine and target.
+//
+// `writeAndroidLocalProperties()` always runs: it is cheap, hits no network, and
+// only points local.properties at the project-local .android-sdk so AGP can
+// resolve `sdk.dir` while the `androidLibrary {}` block evaluates.
+//
+// The SDK *package* download must happen at configuration time when -- and only
+// when -- an Android task is in the requested build. AGP validates the packages
+// while determining the dependencies of `compileAndroidMain` (task-graph
+// construction, strictly before any task executes), so a plain `dependsOn`
+// cannot supply them in time. We detect Android intent from the requested task
+// names and install eagerly in that case. androidNative* are Kotlin/Native
+// targets and need no Android SDK.
+// ----------------------------------------------------------------------------
 writeAndroidLocalProperties()
 
-// AGP validates the SDK packages while determining the dependencies of
-// `compileAndroidMain` (task-graph construction, before any task executes), so a
-// plain `dependsOn` cannot supply them in time. Detect Android intent from the
-// requested task names and install eagerly only in that case; non-Android builds
-// (jsTest, jvmTest, swiftExportSmokeTest, native/androidNative links) skip it.
 fun requestedTaskWantsAndroid(rawTaskName: String): Boolean {
     val taskName = rawTaskName.substringAfterLast(':')
     if (taskName.contains("AndroidNative")) return false // Kotlin/Native, no SDK
     if (taskName.contains("Android")) return true // direct AGP tasks
-    return taskName in setOf("build", "assemble", "check") // aggregates pulling android
+    return taskName in setOf("build", "assemble", "check") // aggregates pull android
 }
+
 if (gradle.startParameter.taskNames.any(::requestedTaskWantsAndroid)) {
     installProjectAndroidSdk(serviceOf())
 }
@@ -299,9 +308,8 @@ val ensureAndroidSdk by tasks.registering {
     }
 }
 
-// Wire SDK setup to every AGP Android task (the `android` KMP target), but NOT
-// to androidNative* (Kotlin/Native targets that don't use the Android SDK) nor
-// to the installer task itself.
+// Secondary net: order every AGP Android task after the installer (a no-op on
+// warm runs). Excludes androidNative* (Kotlin/Native) and the installer itself.
 tasks.matching { task ->
     val taskName = task.name
     taskName != "ensureAndroidSdk" &&
