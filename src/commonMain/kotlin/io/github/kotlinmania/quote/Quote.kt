@@ -36,7 +36,7 @@ import io.github.kotlinmania.procmacro2.TokenTree
  */
 public fun quote(
     template: String,
-    interpolations: Map<String, ToTokens> = emptyMap(),
+    interpolations: Map<String, *> = emptyMap<String, Any?>(),
 ): TokenStream {
     val out = TokenStream.new()
     val parser = QuoteParser(template, interpolations)
@@ -55,7 +55,7 @@ public fun quote(
 public fun quoteSpanned(
     span: Span,
     template: String,
-    interpolations: Map<String, ToTokens> = emptyMap(),
+    interpolations: Map<String, *> = emptyMap<String, Any?>(),
 ): TokenStream {
     val out = TokenStream.new()
     val parser = QuoteParser(template, interpolations, span)
@@ -66,7 +66,7 @@ public fun quoteSpanned(
 /**
  * Convenience overload for a single interpolation pair.
  */
-public fun quote(template: String, vararg pairs: Pair<String, ToTokens>): TokenStream {
+public fun quote(template: String, vararg pairs: Pair<String, *>): TokenStream {
     return quote(template, mapOf(*pairs))
 }
 
@@ -76,7 +76,7 @@ public fun quote(template: String, vararg pairs: Pair<String, ToTokens>): TokenS
 public fun quoteSpanned(
     span: Span,
     template: String,
-    vararg pairs: Pair<String, ToTokens>,
+    vararg pairs: Pair<String, *>,
 ): TokenStream {
     return quoteSpanned(span, template, mapOf(*pairs))
 }
@@ -87,7 +87,7 @@ public fun quoteSpanned(
 
 private class QuoteParser(
     private val template: String,
-    private val interpolations: Map<String, ToTokens>,
+    private val interpolations: Map<String, *>,
     private val span: Span = Span.callSite(),
 ) {
     private var pos = 0
@@ -181,7 +181,7 @@ private class QuoteParser(
 
         val value = interpolations[name]
         if (value != null) {
-            value.toTokens(out)
+            emitValue(out, value)
         } else {
             // Variable not found — emit # as punct followed by the identifier
             out.append(TokenTree.Punct(Punct('#', Spacing.Alone, Span.callSite())))
@@ -233,6 +233,9 @@ private class QuoteParser(
                 val itemInterpolations = interpolations.toMutableMap()
                 if (item is ToTokens) {
                     itemInterpolations[iterVar] = item
+                } else {
+                    // Wrap non-ToTokens items — emitValue handles dispatch
+                    itemInterpolations[iterVar] = item
                 }
                 val subParser = QuoteParser(bodyTemplate, itemInterpolations, span)
                 subParser.emitInto(out)
@@ -262,6 +265,28 @@ private class QuoteParser(
             }
         }
         return names
+    }
+
+    // -- Value emission -----------------------------------------------------
+
+    private fun emitValue(out: TokenStream, value: Any?) {
+        when (value) {
+            is ToTokens -> value.toTokens(out)
+            is Ident -> value.toTokens(out)
+            is TokenStream -> value.toTokens(out)
+            is TokenTree -> value.toTokens(out)
+            is Group -> value.toTokens(out)
+            is Punct -> value.toTokens(out)
+            is Literal -> value.toTokens(out)
+            is String -> value.toTokens(out)
+            is Int -> value.toTokens(out)
+            is Long -> value.toTokens(out)
+            is Boolean -> value.toTokens(out)
+            is UInt -> value.toTokens(out)
+            is ULong -> value.toTokens(out)
+            is Char -> value.toCharTokens(out)
+            else -> out.append(TokenTree.Ident(Ident.new(value.toString(), span)))
+        }
     }
 
     // -- Punctuation --------------------------------------------------------
