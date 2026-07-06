@@ -108,6 +108,12 @@ private class QuoteParser(
                 continue
             }
 
+            // Group delimiters: (), [], {}
+            if (ch == '(' || ch == '[' || ch == '{') {
+                emitGroup(out)
+                continue
+            }
+
             // Punctuation
             if (isPunct(ch)) {
                 emitPunct(out)
@@ -123,6 +129,14 @@ private class QuoteParser(
             // Raw string literal
             if (ch == 'r' && pos + 1 < template.length && template[pos + 1] == '"') {
                 emitRawStringLiteral(out)
+                continue
+            }
+
+            // Raw identifier: r#ident
+            if (ch == 'r' && pos + 1 < template.length && template[pos + 1] == '#' &&
+                pos + 2 < template.length && isIdentStart(template[pos + 2])
+            ) {
+                emitRawIdent(out)
                 continue
             }
 
@@ -216,26 +230,28 @@ private class QuoteParser(
         // Collect all interpolation variable names in the body
         val varNames = collectVarNames(template.substring(bodyStart, bodyEnd))
 
-        // Find the first variable that has an iterable interpolation value
-        // For now, we support List<ToTokens> as the iterable type
-        val iterVar = varNames.firstOrNull { interpolations[it] is Iterable<*> }
+        // Find all iterable interpolation variables — they iterate in lockstep
+        val iterVars = varNames.filter { interpolations[it] is Iterable<*> }
 
-        if (iterVar != null) {
-            val iterable = interpolations[iterVar] as Iterable<*>
+        if (iterVars.isNotEmpty()) {
+            // Get the iterables for all iterVars — they must be the same length
+            val iterables = iterVars.map { interpolations[it] as Iterable<*> }
             val bodyTemplate = template.substring(bodyStart, bodyEnd)
+
+            // Convert to lists so we can index
+            val iterLists = iterables.map { it.toList() }
+            val len = iterLists.firstOrNull()?.size ?: 0
+
             var first = true
-            for (item in iterable) {
+            for (i in 0 until len) {
                 if (!first && separator != null) {
                     out.append(TokenTree.Punct(Punct(separator, Spacing.Alone, Span.callSite())))
                 }
                 first = false
-                // Create a sub-parser with the item bound to the iterVar name
+                // Create a sub-parser with each iterVar bound to its i-th item
                 val itemInterpolations = interpolations.toMutableMap()
-                if (item is ToTokens) {
-                    itemInterpolations[iterVar] = item
-                } else {
-                    // Wrap non-ToTokens items — emitValue handles dispatch
-                    itemInterpolations[iterVar] = item
+                for ((idx, iterVar) in iterVars.withIndex()) {
+                    itemInterpolations[iterVar] = iterLists[idx][i]
                 }
                 val subParser = QuoteParser(bodyTemplate, itemInterpolations, span)
                 subParser.emitInto(out)
@@ -279,12 +295,23 @@ private class QuoteParser(
             is Punct -> value.toTokens(out)
             is Literal -> value.toTokens(out)
             is String -> value.toTokens(out)
+            is Byte -> value.toTokens(out)
+            is Short -> value.toTokens(out)
             is Int -> value.toTokens(out)
             is Long -> value.toTokens(out)
+            is Float -> value.toTokens(out)
+            is Double -> value.toTokens(out)
             is Boolean -> value.toTokens(out)
+            is UByte -> value.toTokens(out)
+            is UShort -> value.toTokens(out)
             is UInt -> value.toTokens(out)
             is ULong -> value.toTokens(out)
             is Char -> value.toCharTokens(out)
+            is Iterable<*> -> {
+                for (item in value) {
+                    emitValue(out, item)
+                }
+            }
             else -> out.append(TokenTree.Ident(Ident.new(value.toString(), span)))
         }
     }
@@ -381,11 +408,75 @@ private class QuoteParser(
         out.append(TokenTree.Literal(lit))
     }
 
+    // -- Group delimiters ---------------------------------------------------
+
+    private fun emitGroup(out: TokenStream) {
+        val open = template[pos]
+        val (delimiter, close) = when (open) {
+            '(' -> Delimiter.Parenthesis to ')'
+            '[' -> Delimiter.Bracket to ']'
+            '{' -> Delimiter.Brace to '}'
+            else -> return
+        }
+        pos++ // skip opening delimiter
+
+        // Collect the inner content until the matching closing delimiter
+        val innerStart = pos
+        var depth = 1
+        while (pos < template.length && depth > 0) {
+            when (template[pos]) {
+                open -> depth++
+                close -> depth--
+            }
+            if (depth > 0) pos++
+        }
+        val innerEnd = pos
+        pos++ // skip closing delimiter
+
+        // Parse the inner content as a sub-template
+        val innerStream = TokenStream.new()
+        val innerTemplate = template.substring(innerStart, innerEnd)
+        val subParser = QuoteParser(innerTemplate, interpolations, span)
+        subParser.emitInto(innerStream)
+
+        val group = Group(delimiter, innerStream)
+        out.append(TokenTree.Group(group))
+    }
+
+    // -- Raw identifier -----------------------------------------------------
+
+    private fun emitRawIdent(out: TokenStream) {
+        // Skip 'r#'
+        pos += 2
+        val name = readIdentName()
+        if (name.isNotEmpty()) {
+            val ident = Ident.newRaw(name, span)
+            out.append(TokenTree.Ident(ident))
+        }
+    }
+
     // -- Lifetime -----------------------------------------------------------
 
     private fun emitLifetime(out: TokenStream) {
+        // pos is at the apostrophe
         val apostrophe = Punct('\'', Spacing.Joint, span)
         out.append(TokenTree.Punct(apostrophe))
+        pos++ // skip apostrophe
+
+        // Check for raw lifetime: 'r#name
+        if (pos + 1 < template.length && template[pos] == 'r' &&
+            pos + 1 < template.length && template[pos + 1] == '#' &&
+            pos + 2 < template.length && isIdentStart(template[pos + 2])
+        ) {
+            pos++ // skip r
+            pos++ // skip #
+            val name = readIdentName()
+            if (name.isNotEmpty()) {
+                val ident = Ident.newRaw(name, span)
+                out.append(TokenTree.Ident(ident))
+            }
+            return
+        }
 
         val name = readIdentName()
         if (name.isNotEmpty()) {
