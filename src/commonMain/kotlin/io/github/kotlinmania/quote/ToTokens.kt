@@ -67,6 +67,16 @@ public fun Long.toTokens(tokens: TokenStream) {
     tokens.append(Literal.i64Suffixed(this))
 }
 
+/** 128-bit signed integer interpolation — maps to the upstream i128 impl. */
+public fun Long.i128ToTokens(tokens: TokenStream) {
+    tokens.append(Literal.i128Suffixed(this))
+}
+
+/** Pointer-sized signed integer interpolation — maps to the upstream isize impl. */
+public fun Long.isizeToTokens(tokens: TokenStream) {
+    tokens.append(Literal.isizeSuffixed(this))
+}
+
 public fun UByte.toTokens(tokens: TokenStream) {
     tokens.append(Literal.u8Suffixed(this))
 }
@@ -81,6 +91,16 @@ public fun UInt.toTokens(tokens: TokenStream) {
 
 public fun ULong.toTokens(tokens: TokenStream) {
     tokens.append(Literal.u64Suffixed(this))
+}
+
+/** 128-bit unsigned integer interpolation — maps to the upstream u128 impl. */
+public fun ULong.u128ToTokens(tokens: TokenStream) {
+    tokens.append(Literal.u128Suffixed(this))
+}
+
+/** Pointer-sized unsigned integer interpolation — maps to the upstream usize impl. */
+public fun ULong.usizeToTokens(tokens: TokenStream) {
+    tokens.append(Literal.usizeSuffixed(this))
 }
 
 public fun Float.toTokens(tokens: TokenStream) {
