@@ -129,8 +129,7 @@ class QuoteTest {
     @Test
     fun testQuoteLifetime() {
         val tokens = quote("'static")
-        val str = tokens.toString()
-        assertTrue(str.contains("static") || str.contains("'"))
+        assertEquals("'static", tokens.toString())
     }
 
     // -- Ported from tests/test.rs --------------------------------------------
@@ -588,10 +587,8 @@ class QuoteTest {
     @Test
     fun testQuoteRawLifetime() {
         // Rust: quote!('r#async) => "'r#async"
-        // Kotlin emits "' r#async" (apostrophe with Alone spacing).
         val tokens = quote("'r#async")
-        val str = tokens.toString()
-        assertTrue(str.contains("r#async"), "Expected r#async in: $str")
+        assertEquals("'r#async", tokens.toString())
     }
 
     @Test

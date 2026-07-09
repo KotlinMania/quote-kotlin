@@ -114,6 +114,12 @@ private class QuoteParser(
                 continue
             }
 
+            // Lifetime
+            if (ch == '\'' && pos + 1 < template.length && isIdentStart(template[pos + 1])) {
+                emitLifetime(out)
+                continue
+            }
+
             // Punctuation
             if (isPunct(ch)) {
                 emitPunct(out)
@@ -137,12 +143,6 @@ private class QuoteParser(
                 pos + 2 < template.length && isIdentStart(template[pos + 2])
             ) {
                 emitRawIdent(out)
-                continue
-            }
-
-            // Lifetime
-            if (ch == '\'' && pos + 1 < template.length && isIdentStart(template[pos + 1])) {
-                emitLifetime(out)
                 continue
             }
 
