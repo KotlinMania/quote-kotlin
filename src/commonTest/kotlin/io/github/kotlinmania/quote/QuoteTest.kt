@@ -1,4 +1,4 @@
-// port-lint: source tests/test.rs
+// port-lint: tests tests/test.rs
 package io.github.kotlinmania.quote
 
 import io.github.kotlinmania.procmacro2.Delimiter
@@ -66,6 +66,29 @@ class QuoteTest {
     fun testFormatIdentWithInt() {
         val ident = formatIdent("Id_{}", 42)
         assertEquals("Id_42", ident.toString())
+    }
+
+    @Test
+    fun testFormatIdentComposesRawAndNonRawIdentifiers() {
+        val myIdent = formatIdent("My{}", "Ident")
+        assertEquals("MyIdent", myIdent.toString())
+
+        val raw = formatIdent("r#Raw")
+        assertEquals("r#Raw", raw.toString())
+
+        val myIdentRaw = formatIdent("{}Is{}", myIdent, raw)
+        assertEquals("MyIdentIsRaw", myIdentRaw.toString())
+    }
+
+    @Test
+    fun testFormatIdentIntegerFormattingOptions() {
+        val num = 10.toUInt()
+
+        assertEquals("Id_10", formatIdent("Id_{}", num).toString())
+        assertEquals("Id_12", formatIdent("Id_{:o}", num).toString())
+        assertEquals("Id_1010", formatIdent("Id_{:b}", num).toString())
+        assertEquals("Id_a", formatIdent("Id_{:x}", num).toString())
+        assertEquals("Id_A", formatIdent("Id_{:X}", num).toString())
     }
 
     @Test

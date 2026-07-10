@@ -39,13 +39,16 @@ public fun formatIdent(fmt: String, vararg args: Any?): Ident {
             argIndex++
             i += 2
         } else if (ch == '{' && i + 1 < fmt.length && fmt[i + 1] == ':') {
-            require(i + 2 < fmt.length && fmt[i + 2] == '}') {
+            require(i + 3 < fmt.length && fmt[i + 3] == '}') {
+                "formatIdent: unsupported format specifier in \"$fmt\""
+            }
+            val spec = fmt[i + 2]
+            require(spec == 'o' || spec == 'x' || spec == 'X' || spec == 'b') {
                 "formatIdent: unsupported format specifier in \"$fmt\""
             }
             require(argIndex < args.size) {
                 "formatIdent: not enough arguments for format string \"$fmt\""
             }
-            val spec = fmt[i + 1]
             val arg = args[argIndex]
             val (text, argSpan) = fragmentOf(arg, spec)
             if (span == null && argSpan != null) {
@@ -53,7 +56,7 @@ public fun formatIdent(fmt: String, vararg args: Any?): Ident {
             }
             builder.append(text)
             argIndex++
-            i += 3
+            i += 4
         } else {
             builder.append(ch)
             i++
