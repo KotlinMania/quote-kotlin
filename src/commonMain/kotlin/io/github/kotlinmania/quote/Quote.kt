@@ -295,12 +295,12 @@ private class QuoteParser(
             is Punct -> value.toTokens(out)
             is Literal -> value.toTokens(out)
             is String -> value.toTokens(out)
-            is Byte -> value.toTokens(out)
-            is Short -> value.toTokens(out)
-            is Int -> value.toTokens(out)
             is Long -> value.toTokens(out)
-            is Float -> value.toTokens(out)
-            is Double -> value.toTokens(out)
+            is Number -> {
+                val literal = Literal.fromString(value.toString()).getOrThrow()
+                literal.setSpan(span)
+                literal.toTokens(out)
+            }
             is Boolean -> value.toTokens(out)
             is UByte -> value.toTokens(out)
             is UShort -> value.toTokens(out)
@@ -489,24 +489,27 @@ private class QuoteParser(
 
     private fun emitNumberLiteral(out: TokenStream) {
         val start = pos
-        if (template[pos] == '-') pos++
-        while (pos < template.length && (template[pos].isDigit() || template[pos] in "._abcdefABCDEFxXouifl")) {
-            pos++
+        val radixPrefix = pos + 1 < template.length && template[pos] == '0' && template[pos + 1] in "boxBOX"
+        if (radixPrefix) {
+            pos += 2
+            while (pos < template.length && (template[pos].isLetterOrDigit() || template[pos] == '_')) pos++
+        } else {
+            while (pos < template.length && (template[pos].isDigit() || template[pos] == '_')) pos++
+            if (pos < template.length && template[pos] == '.' && template.getOrNull(pos + 1) != '.') {
+                pos++
+                while (pos < template.length && (template[pos].isDigit() || template[pos] == '_')) pos++
+            }
+            if (pos < template.length && template[pos] in "eE") {
+                pos++
+                if (pos < template.length && template[pos] in "+-") pos++
+                while (pos < template.length && (template[pos].isDigit() || template[pos] == '_')) pos++
+            }
+            while (pos < template.length && isIdentPart(template[pos])) pos++
         }
         val text = template.substring(start, pos)
-        // Try to parse as integer or float, emit appropriate literal
-        try {
-            val longVal = text.replace("_", "").toLong()
-            out.append(TokenTree.Literal(Literal.i64Suffixed(longVal)))
-        } catch (e: NumberFormatException) {
-            try {
-                val doubleVal = text.replace("_", "").toDouble()
-                out.append(TokenTree.Literal(Literal.f64Suffixed(doubleVal)))
-            } catch (e2: NumberFormatException) {
-                // Fallback: emit as string literal
-                out.append(TokenTree.Literal(Literal.string(text)))
-            }
-        }
+        val literal = Literal.fromString(text).getOrThrow()
+        literal.setSpan(span)
+        out.append(TokenTree.Literal(literal))
     }
 
     // -- Identifier ---------------------------------------------------------
