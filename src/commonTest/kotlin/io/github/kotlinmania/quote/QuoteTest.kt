@@ -177,10 +177,10 @@ class QuoteTest {
     @Test
     fun testArray() {
         // Rust iterates over arrays and slices of u8 and X. Kotlin uses List.
-        val array = List(40) { 0.toByte() }
+        val array = List(40) { 0.toUByte() }
         val tokens = quote("`#`(`#`array `#`array)*", mapOf("array" to array))
         val str = tokens.toString()
-        assertTrue(str.contains("0i8"))
+        assertTrue(str.contains("0u8"))
         assertTrue(str.split(" ").size >= 80)
 
         val xArray = listOf(X(), X())
@@ -188,18 +188,13 @@ class QuoteTest {
         assertEquals("X X X X", tokens2.toString())
 
         // Nested arrays: [[u8; 2]; 2]
-        val arrayOfArray = listOf(listOf(0.toByte(), 0.toByte()), listOf(0.toByte(), 0.toByte()))
+        val arrayOfArray = listOf(listOf(0.toUByte(), 0.toUByte()), listOf(0.toUByte(), 0.toUByte()))
         val tokens3 = quote("`#`(`#`(`#`inner)*)*", mapOf("inner" to arrayOfArray))
-        assertEquals("0i8 0i8 0i8 0i8", tokens3.toString())
+        assertEquals("0u8 0u8 0u8 0u8", tokens3.toString())
     }
 
     @Test
     fun testAdvanced() {
-        // Rust builds a complex struct + impl with multiple interpolations.
-        // Note: Kotlin's TokenStream.toTokens moves tokens (like Rust's ownership),
-        // so reusing the same TokenStream variable for multiple `#generics`
-        // interpolations would consume it. We verify the structural output of a
-        // single interpolation pass instead.
         val generics = quote(" < 'a , T > ")
         val whereClause = quote(" where T : Serialize ")
         val fieldTy = quote("String")
@@ -207,50 +202,65 @@ class QuoteTest {
         val path = quote("SomeTrait :: serialize_with")
         val value = quote("self . x")
 
-        // Each interpolated TokenStream is used once; subsequent uses would be
-        // empty due to move semantics. Build the quote in two halves to avoid
-        // reuse:
-        val first = quote(
-            "struct SerializeWith `#`generics `#`whereClause { value : & 'a `#`fieldTy , phantom : :: std :: marker :: PhantomData < `#`itemTy > , }",
+        val tokens = quote(
+            """
+            struct SerializeWith `#`generics `#`whereClause {
+                value: &'a `#`fieldTy,
+                phantom: ::std::marker::PhantomData<`#`itemTy>,
+            }
+
+            impl `#`generics ::serde::Serialize for SerializeWith `#`generics `#`whereClause {
+                fn serialize<S>(&self, s: &mut S) -> Result<(), S::Error>
+                    where S: ::serde::Serializer
+                {
+                    `#`path(self.value, s)
+                }
+            }
+
+            SerializeWith {
+                value: `#`value,
+                phantom: ::std::marker::PhantomData::<`#`itemTy>,
+            }
+            """,
             mapOf(
                 "generics" to generics,
                 "whereClause" to whereClause,
                 "fieldTy" to fieldTy,
                 "itemTy" to itemTy,
+                "path" to path,
+                "value" to value,
             ),
         )
-        val second = quote(
-            "`#`path (self . value , s) SerializeWith { value : `#`value , }",
-            mapOf("path" to path, "value" to value),
-        )
-        val firstStr = first.toString()
-        val secondStr = second.toString()
-        assertTrue(firstStr.contains("struct SerializeWith"))
-        assertTrue(firstStr.contains("Serialize"))
-        assertTrue(firstStr.contains("PhantomData"))
-        assertTrue(firstStr.contains("String"))
-        assertTrue(firstStr.contains("Cow"))
-        assertTrue(secondStr.contains("SomeTrait"))
-        assertTrue(secondStr.contains("serialize_with"))
-        assertTrue(secondStr.contains("self . x"))
+
+        val rendered = tokens.toString()
+        assertEquals(3, Regex("< 'a , T >").findAll(rendered).count())
+        assertEquals(2, Regex("Cow < 'a , str >").findAll(rendered).count())
+        assertTrue(rendered.contains("SomeTrait :: serialize_with (self . value , s)"))
+        assertTrue(rendered.contains("value : self . x"))
+    }
+
+    @Test
+    fun testTemplateLiteralsPreserveSpelling() {
+        val tokens = quote("0 1usize 2u32 3.5f32")
+
+        assertEquals("0 1usize 2u32 3.5f32", tokens.toString())
+        assertEquals("1 2.5", quote("`#`integer `#`floating", "integer" to 1, "floating" to 2.5).toString())
     }
 
     @Test
     fun testInteger() {
-        // Rust interpolates i8..i128, isize, u8..u128, usize.
-        // Kotlin's 128-bit and isize types are represented via Long.
-        val ii8 = (-1).toByte()
-        val ii16 = (-1).toShort()
-        val ii32 = -1
-        val ii64 = (-1).toLong()
-        val ii128 = (-1).toLong()
-        val iisize = (-1).toLong()
-        val uu8 = 1.toUByte()
-        val uu16 = 1.toUShort()
-        val uu32 = 1.toUInt()
-        val uu64 = 1.toULong()
-        val uu128 = 1.toULong()
-        val uusize = 1.toULong()
+        val ii8 = TokenStream.new().also { (-1).toByte().toTokens(it) }
+        val ii16 = TokenStream.new().also { (-1).toShort().toTokens(it) }
+        val ii32 = TokenStream.new().also { (-1).toTokens(it) }
+        val ii64 = TokenStream.new().also { (-1L).toTokens(it) }
+        val ii128 = TokenStream.new().also { (-1L).i128ToTokens(it) }
+        val iisize = TokenStream.new().also { (-1L).isizeToTokens(it) }
+        val uu8 = TokenStream.new().also { 1.toUByte().toTokens(it) }
+        val uu16 = TokenStream.new().also { 1.toUShort().toTokens(it) }
+        val uu32 = TokenStream.new().also { 1.toUInt().toTokens(it) }
+        val uu64 = TokenStream.new().also { 1.toULong().toTokens(it) }
+        val uu128 = TokenStream.new().also { 1.toULong().u128ToTokens(it) }
+        val uusize = TokenStream.new().also { 1.toULong().usizeToTokens(it) }
 
         val tokens = quote(
             "`#`ii8 `#`ii16 `#`ii32 `#`ii64 `#`ii128 `#`iisize `#`uu8 `#`uu16 `#`uu32 `#`uu64 `#`uu128 `#`uusize",
@@ -282,8 +292,9 @@ class QuoteTest {
 
     @Test
     fun testFloating() {
-        // Rust: let e32 = 2.345f32; let e64 = 2.345f64;
-        val tokens = quote("`#`e32 `#`e64", mapOf("e32" to 2.345f, "e64" to 2.345))
+        val e32 = TokenStream.new().also { 2.345f.toTokens(it) }
+        val e64 = TokenStream.new().also { 2.345.toTokens(it) }
+        val tokens = quote("`#`e32 `#`e64", mapOf("e32" to e32, "e64" to e64))
         assertEquals("2.345f32 2.345f64", tokens.toString())
     }
 
@@ -345,10 +356,8 @@ class QuoteTest {
 
     @Test
     fun testInterpolatedLiteral() {
-        // Rust: macro_rules! m { ($literal:literal) => { quote!($literal) } }
-        // In Kotlin there are no macros; we quote the literal directly.
-        assertEquals("1i64", quote("1").toString())
-        assertEquals("- 1i64", quote("- 1").toString())
+        assertEquals("1", quote("1").toString())
+        assertEquals("- 1", quote("- 1").toString())
         assertEquals("true", quote("true").toString())
         assertEquals("- true", quote("- true").toString())
     }
@@ -415,8 +424,7 @@ class QuoteTest {
 
     @Test
     fun testBtreesetRepetition() {
-        // Rust: BTreeSet with "a", "b"; quote! { #(#set: #set),* }
-        val set = sortedSetOf("a", "b")
+        val set = setOf("a", "b")
         val tokens = quote("`#`(`#`set : `#`set),*", mapOf("set" to set))
         assertEquals("\"a\" : \"a\" , \"b\" : \"b\"", tokens.toString())
     }
