@@ -297,7 +297,7 @@ be dual licensed as above, without any additional terms or conditions.
 
 ```kotlin
 dependencies {
-    implementation("io.github.kotlinmania:quote-kotlin:0.2.3")
+    implementation("io.github.kotlinmania:quote-kotlin:0.2.4")
 }
 ```
 

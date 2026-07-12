@@ -551,38 +551,26 @@ class QuoteTest {
 
     @Test
     fun testOuterLineComment() {
-        // Rust: quote! { /// doc } => "# [doc = r\" doc\"]"
-        // Kotlin's quote parser does not convert doc comments to #[doc] attrs;
-        // it tokenizes /// as three '/' punct tokens followed by 'doc'.
         val tokens = quote("/// doc")
-        val str = tokens.toString()
-        assertTrue(str.contains("doc"), "Expected doc in: $str")
+        assertEquals("# [doc = r\" doc\"]", tokens.toString())
     }
 
     @Test
     fun testInnerLineComment() {
-        // Rust: quote! { //! doc } => "# ! [doc = r\" doc\"]"
-        // Kotlin tokenizes //! as '/', '/', '!' punct tokens followed by 'doc'.
         val tokens = quote("//! doc")
-        val str = tokens.toString()
-        assertTrue(str.contains("doc"), "Expected doc in: $str")
+        assertEquals("# ! [doc = r\" doc\"]", tokens.toString())
     }
 
     @Test
     fun testOuterBlockComment() {
-        // Rust: quote! { /** doc */ } => "# [doc = r\" doc \"]"
-        // Kotlin tokenizes /** as '/', '*' punct tokens, then 'doc', then '*', '/'.
         val tokens = quote("/** doc */")
-        val str = tokens.toString()
-        assertTrue(str.contains("doc"), "Expected doc in: $str")
+        assertEquals("# [doc = r\" doc \"]", tokens.toString())
     }
 
     @Test
     fun testInnerBlockComment() {
-        // Rust: quote! { /*! doc */ } => "# ! [doc = r\" doc \"]"
         val tokens = quote("/*! doc */")
-        val str = tokens.toString()
-        assertTrue(str.contains("doc"), "Expected doc in: $str")
+        assertEquals("# ! [doc = r\" doc \"]", tokens.toString())
     }
 
     @Test
