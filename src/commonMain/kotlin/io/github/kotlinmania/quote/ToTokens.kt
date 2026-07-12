@@ -149,7 +149,7 @@ public fun TokenTree.toTokens(tokens: TokenStream) {
 }
 
 public fun TokenStream.toTokens(tokens: TokenStream) {
-    tokens.extendTokenStreams(listOf(this))
+    tokens.extendTokenStreams(listOf(clone()))
 }
 
 public fun TokenStream.intoTokenStream(): TokenStream =
