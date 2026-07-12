@@ -318,7 +318,7 @@ private class QuoteParser(
                     emitValue(out, item)
                 }
             }
-            else -> out.append(TokenTree.Ident(Ident.new(value.toString(), span)))
+            else -> error("Unsupported quote interpolation value")
         }
     }
 
