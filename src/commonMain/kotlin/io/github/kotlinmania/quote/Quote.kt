@@ -20,9 +20,8 @@ import io.github.kotlinmania.procmacro2.TokenTree
  * [interpolations] map. Repetition is done with `` `#`(...)* `` or
  * `` `#`(...),* `` syntax, where the separator is the character before `*`.
  *
- * Variables not found in [interpolations] are treated as literal identifiers
- * (the `` `#` `` is emitted as a `#` punctuation token followed by the
- * identifier).
+ * Every interpolated variable must be present in [interpolations]. A `null`
+ * value emits no tokens, matching an absent optional interpolation.
  *
  * Tokens that originate within the quote invocation are spanned with
  * [Span.callSite].
@@ -99,6 +98,13 @@ private class QuoteParser(
             // Skip whitespace — token streams don't store whitespace
             if (ch.isWhitespace()) {
                 pos++
+                continue
+            }
+
+            if (ch == '/' && pos + 1 < template.length &&
+                (template[pos + 1] == '/' || template[pos + 1] == '*')
+            ) {
+                emitComment(out)
                 continue
             }
 
@@ -193,14 +199,10 @@ private class QuoteParser(
             return
         }
 
-        val value = interpolations[name]
-        if (value != null) {
-            emitValue(out, value)
-        } else {
-            // Variable not found — emit # as punct followed by the identifier
-            out.append(TokenTree.Punct(Punct('#', Spacing.Alone, Span.callSite())))
-            out.append(TokenTree.Ident(Ident.new(name, span)))
+        require(interpolations.containsKey(name)) {
+            "missing quote interpolation: $name"
         }
+        emitValue(out, interpolations[name])
     }
 
     private fun emitRepetition(out: TokenStream) {
@@ -231,7 +233,7 @@ private class QuoteParser(
         val varNames = collectVarNames(template.substring(bodyStart, bodyEnd))
 
         // Find all iterable interpolation variables — they iterate in lockstep
-        val iterVars = varNames.filter { interpolations[it] is Iterable<*> }
+        val iterVars = varNames.filter { isRepetitionIterable(interpolations[it]) }
 
         if (iterVars.isNotEmpty()) {
             // Get the iterables for all iterVars — they must be the same length
@@ -260,6 +262,9 @@ private class QuoteParser(
         // If no iterable variable, emit the body once (non-repeating)
     }
 
+    private fun isRepetitionIterable(value: Any?): Boolean =
+        value is Iterable<*> && value !is ToTokens && value !is TokenStream
+
     private fun collectVarNames(body: String): List<String> {
         val names = mutableListOf<String>()
         var i = 0
@@ -287,6 +292,7 @@ private class QuoteParser(
 
     private fun emitValue(out: TokenStream, value: Any?) {
         when (value) {
+            null -> Unit
             is ToTokens -> value.toTokens(out)
             is Ident -> value.toTokens(out)
             is TokenStream -> value.toTokens(out)
@@ -314,6 +320,69 @@ private class QuoteParser(
             }
             else -> out.append(TokenTree.Ident(Ident.new(value.toString(), span)))
         }
+    }
+
+    private fun emitComment(out: TokenStream) {
+        val lineComment = template[pos + 1] == '/'
+        if (lineComment) {
+            val outerDoc = template.startsWith("///", pos) && !template.startsWith("////", pos)
+            val innerDoc = template.startsWith("//!", pos)
+            val contentStart = if (outerDoc || innerDoc) pos + 3 else pos + 2
+            val end = template.indexOf('\n', pos).let { if (it == -1) template.length else it }
+            if (outerDoc || innerDoc) {
+                emitDocAttribute(out, template.substring(contentStart, end), innerDoc)
+            }
+            pos = end
+            return
+        }
+
+        val outerDoc = template.startsWith("/**", pos) && !template.startsWith("/***", pos)
+        val innerDoc = template.startsWith("/*!", pos)
+        val contentStart = if (outerDoc || innerDoc) pos + 3 else pos + 2
+        var cursor = pos + 2
+        var depth = 1
+        var contentEnd = cursor
+        while (cursor < template.length && depth > 0) {
+            when {
+                template.startsWith("/*", cursor) -> {
+                    depth++
+                    cursor += 2
+                }
+                template.startsWith("*/", cursor) -> {
+                    depth--
+                    contentEnd = cursor
+                    cursor += 2
+                }
+                else -> cursor++
+            }
+        }
+        if (outerDoc || innerDoc) {
+            emitDocAttribute(out, template.substring(contentStart, contentEnd), innerDoc)
+        }
+        pos = cursor
+    }
+
+    private fun emitDocAttribute(out: TokenStream, content: String, inner: Boolean) {
+        out.append(TokenTree.Punct(Punct('#', Spacing.Alone, span)))
+        if (inner) {
+            out.append(TokenTree.Punct(Punct('!', Spacing.Alone, span)))
+        }
+
+        val attribute = TokenStream.new()
+        attribute.append(TokenTree.Ident(Ident.new("doc", span)))
+        attribute.append(TokenTree.Punct(Punct('=', Spacing.Alone, span)))
+        val literal = Literal.fromString(rawStringLiteral(content)).getOrThrow()
+        literal.setSpan(span)
+        attribute.append(TokenTree.Literal(literal))
+        out.append(TokenTree.Group(Group(Delimiter.Bracket, attribute)))
+    }
+
+    private fun rawStringLiteral(content: String): String {
+        var hashes = ""
+        while (content.contains("\"$hashes")) {
+            hashes += "#"
+        }
+        return "r$hashes\"$content\"$hashes"
     }
 
     // -- Punctuation --------------------------------------------------------
