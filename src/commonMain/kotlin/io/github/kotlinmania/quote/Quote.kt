@@ -172,20 +172,41 @@ private class QuoteParser(
     // -- Interpolation ------------------------------------------------------
 
     private fun isInterpolationMarker(): Boolean {
-        // Check for `#` (backtick-hash-backtick) — the interpolation marker
-        // In the template string, interpolation is written as `#`name
-        // The actual bytes are: backtick, hash, backtick
-        return pos + 2 < template.length &&
+        // Check for `#` (backtick-hash-backtick) or bare `#` if followed by `(` or an ident in interpolations
+        if (pos + 2 < template.length &&
             template[pos] == '`' &&
             template[pos + 1] == '#' &&
             template[pos + 2] == '`'
+        ) {
+            return true
+        }
+        if (template[pos] == '#') {
+            if (pos + 1 < template.length && template[pos + 1] == '(') {
+                return true
+            }
+            if (pos + 1 < template.length && isIdentStart(template[pos + 1])) {
+                val nextPos = pos + 1
+                var end = nextPos
+                while (end < template.length && isIdentPart(template[end])) end++
+                val ident = template.substring(nextPos, end)
+                if (interpolations.containsKey(ident)) {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     private fun emitInterpolation(out: TokenStream) {
-        // Skip the `#` marker (3 chars: backtick, hash, backtick)
-        pos += 3
+        if (template[pos] == '`') {
+            // Skip the `#` marker (3 chars: backtick, hash, backtick)
+            pos += 3
+        } else {
+            // Skip bare `#`
+            pos += 1
+        }
 
-        // Check for repetition: `#`(...)
+        // Check for repetition: `#`(...) or #(...)
         if (pos < template.length && template[pos] == '(') {
             emitRepetition(out)
             return
@@ -280,6 +301,17 @@ private class QuoteParser(
                 }
                 if (name.isNotEmpty()) {
                     names.add(name.toString())
+                }
+            } else if (body[i] == '#' && i + 1 < body.length && isIdentStart(body[i + 1])) {
+                val start = i + 1
+                var end = start
+                while (end < body.length && isIdentPart(body[end])) end++
+                val ident = body.substring(start, end)
+                if (interpolations.containsKey(ident)) {
+                    names.add(ident)
+                    i = end
+                } else {
+                    i++
                 }
             } else {
                 i++
