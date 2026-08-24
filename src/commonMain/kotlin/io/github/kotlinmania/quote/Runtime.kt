@@ -1,6 +1,7 @@
 // port-lint: source runtime.rs
 package io.github.kotlinmania.quote
 
+import io.github.kotlinmania.procmacro2.DelimSpan
 import io.github.kotlinmania.procmacro2.Delimiter
 import io.github.kotlinmania.procmacro2.Group
 import io.github.kotlinmania.procmacro2.Ident
@@ -10,10 +11,78 @@ import io.github.kotlinmania.procmacro2.Span
 import io.github.kotlinmania.procmacro2.TokenStream
 import io.github.kotlinmania.procmacro2.TokenTree
 
+public typealias Delimiter = io.github.kotlinmania.procmacro2.Delimiter
+public typealias Span = io.github.kotlinmania.procmacro2.Span
+public typealias TokenStream = io.github.kotlinmania.procmacro2.TokenStream
+
+public typealias Output = Any
+public typealias Iter = Any
+public typealias Item = Any
+public typealias Target = Any
+
+public class HasIterator<T>(
+    public val hasIterator: Boolean,
+) {
+    public fun bitOr(rhs: HasIterator<*>): HasIterator<T> =
+        HasIterator(hasIterator || rhs.hasIterator)
+}
+
+public interface CheckHasIterator {
+    public fun check() {}
+}
+
+public interface RepIteratorExt {
+    public fun <T> quoteIntoIter(iter: Iterator<T>): Pair<Iterator<T>, HasIterator<Boolean>> =
+        Pair(iter, HasIterator(true))
+}
+
+public interface RepToTokensExt {
+    public fun <T : ToTokens> quoteIntoIter(value: T): Pair<T, HasIterator<Boolean>> =
+        Pair(value, HasIterator(false))
+}
+
+public interface RepAsIteratorExt {
+    public fun <T> quoteIntoIter(iterable: Iterable<T>): Pair<Iterator<T>, HasIterator<Boolean>> =
+        Pair(iterable.iterator(), HasIterator(true))
+}
+
+public class GetSpanBase<T>(
+    public val value: T,
+) {
+    public fun __intoSpan(): Span =
+        when (val v = value) {
+            is Span -> v
+            is DelimSpan -> v.join()
+            is ToTokens -> v.__span()
+            else -> Span.callSite()
+        }
+
+    public fun deref(): T = value
+}
+
+public class GetSpanInner<T>(
+    public val base: GetSpanBase<T>,
+) {
+    public fun __intoSpan(): Span = base.__intoSpan()
+
+    public fun deref(): GetSpanBase<T> = base
+}
+
+public class GetSpan<T>(
+    public val inner: GetSpanInner<T>,
+) {
+    public fun __intoSpan(): Span = inner.__intoSpan()
+
+    public fun deref(): GetSpanInner<T> = inner
+}
+
+public fun <T> getSpan(span: T): GetSpan<T> =
+    GetSpan(GetSpanInner(GetSpanBase(span)))
+
 /**
  * Runtime support functions for the quote system.
  *
- * These are the Kotlin analogues of the functions in Rust's
+ * These are the Kotlin analogues of the functions in
  * `quote::__private` (runtime.rs). They are used by [quote] and
  * [quoteSpanned] internally, and may be used directly by code that
  * needs fine-grained control over token emission.
@@ -54,6 +123,13 @@ public fun pushParse(tokens: TokenStream, s: String) {
 }
 
 /**
+ * Parse a string as a token stream and extend [tokens] with the result.
+ */
+public fun parse(tokens: TokenStream, s: String) {
+    pushParse(tokens, s)
+}
+
+/**
  * Parse a string as a token stream, respan all tokens with [span],
  * and extend [tokens] with the result.
  */
@@ -65,6 +141,14 @@ public fun pushParseSpanned(tokens: TokenStream, span: Span, s: String) {
     for (token in result.getOrThrow()) {
         tokens.append(respanTokenTree(token, span))
     }
+}
+
+/**
+ * Parse a string as a token stream, respan all tokens with [span],
+ * and extend [tokens] with the result.
+ */
+public fun parseSpanned(tokens: TokenStream, span: Span, s: String) {
+    pushParseSpanned(tokens, span, s)
 }
 
 /**
@@ -103,7 +187,7 @@ public fun pushIdentSpanned(tokens: TokenStream, span: Span, s: String) {
 }
 
 /**
- * Push a lifetime onto [tokens].
+ * Push an apostrophe-prefixed identifier token onto [tokens].
  */
 public fun pushLifetime(tokens: TokenStream, lifetime: String) {
     val apostrophe = Punct('\'', Spacing.Joint, Span.callSite())
@@ -112,7 +196,7 @@ public fun pushLifetime(tokens: TokenStream, lifetime: String) {
 }
 
 /**
- * Push a spanned lifetime onto [tokens].
+ * Push a spanned apostrophe-prefixed identifier token onto [tokens].
  */
 public fun pushLifetimeSpanned(tokens: TokenStream, span: Span, lifetime: String) {
     val apostrophe = Punct('\'', Spacing.Joint, span)
@@ -134,9 +218,22 @@ public fun pushUnderscoreSpanned(tokens: TokenStream, span: Span) {
     tokens.append(TokenTree.Ident(Ident.new("_", span)))
 }
 
+/**
+ * Helper method for constructing identifiers handling `r#` prefixes.
+ */
+public fun mkIdent(id: String, span: Span? = null): Ident =
+    identMaybeRaw(id, span ?: Span.callSite())
+
+public fun identMaybeRaw(id: String, span: Span): Ident =
+    if (id.startsWith("r#")) {
+        Ident.newRaw(id.substring(2), span)
+    } else {
+        Ident.new(id, span)
+    }
+
 // ---------------------------------------------------------------------------
 // Punctuation push helpers — one pair per operator from the upstream
-// push_punct macro. Each pair has an unsuffixed variant (call-site span)
+// pushPunct helper. Each pair has an unsuffixed variant (call-site span)
 // and a spanned variant.
 // ---------------------------------------------------------------------------
 
@@ -518,7 +615,13 @@ public fun pushSubEqSpanned(tokens: TokenStream, span: Span) {
  */
 public class RepInterp<T>(
     public val value: T,
-)
+) : ToTokens {
+    override fun toTokens(tokens: TokenStream) {
+        if (value is ToTokens) {
+            value.toTokens(tokens)
+        }
+    }
+}
 
 /**
  * Return the wrapped value, mirroring the single-element iterator pattern.

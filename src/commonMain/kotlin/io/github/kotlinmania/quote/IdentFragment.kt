@@ -1,4 +1,4 @@
-// port-lint: source src/ident_fragment.rs
+// port-lint: source ident_fragment.rs
 package io.github.kotlinmania.quote
 
 import io.github.kotlinmania.procmacro2.Ident
@@ -15,6 +15,13 @@ import io.github.kotlinmania.procmacro2.Span
 public interface IdentFragment {
     /** Format this value as an identifier fragment. */
     public fun formatIdentFragment(): String
+
+    /** Format this value as an identifier fragment into [formatter]. */
+    public fun fmt(formatter: Appendable): Appendable =
+        formatter.append(formatIdentFragment())
+
+    /** Format this value as an identifier fragment string. */
+    public fun fmt(): String = formatIdentFragment()
 
     /**
      * Span associated with this [IdentFragment].
