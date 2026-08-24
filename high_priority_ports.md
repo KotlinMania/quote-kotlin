@@ -13,9 +13,9 @@ This list is complete and includes function/type detail for every matched file. 
 | 1 | `to_tokens` | `quote.ToTokens` | 0.58 | 4 | 3/3 matched (target 28) | _none_ | 1/1 matched | _none_ | 0 | 4 | 4000404.2 |
 | 2 | `ident_fragment` | `quote.IdentFragment` | 0.25 | 1 | 2/2 matched (target 11) | _none_ | 1/1 matched (target 3) | _none_ | 0 | 3 | 1000307.4 |
 | 3 | `format` | `quote.FormatIdent [ZERO]` | 0.00 | 1 | 0/0 matched (target 2) | _none_ | 0/0 matched | _none_ | 0 | 0 | 1000010.0 |
-| 4 | `runtime` | `quote.Runtime` | 0.46 | 0 | 23/23 matched (target 123) | _none_ | 17/17 matched | _none_ | 0 | 40 | 4005.4 |
-| 5 | `ext` | `quote.Ext` | 0.83 | 0 | 7/7 matched (target 11) | _none_ | 2/2 matched | _none_ | 0 | 9 | 901.7 |
-| 6 | `spanned` | `quote.Spanned` | 0.89 | 0 | 2/2 matched (target 4) | _none_ | 2/2 matched | _none_ | 0 | 4 | 401.1 |
+| 4 | `runtime` | `quote.Runtime` | 0.42 | 0 | 21/23 matched (target 120) | `span`, `fmt` | 16/17 matched (target 16) | `IdentFragmentAdapter` | 3 | 40 | 34005.8 |
+| 5 | `spanned` | `quote.Spanned` | 0.89 | 0 | 2/2 matched (target 4) | _none_ | 1/2 matched (target 1) | `Sealed` | 1 | 4 | 10401.1 |
+| 6 | `ext` | `quote.Ext` | 0.83 | 0 | 7/7 matched (target 11) | _none_ | 2/2 matched | _none_ | 0 | 9 | 901.7 |
 | 7 | `lib` | `quote.Quote [ZERO]` | 0.00 | 0 | 0/0 matched (target 29) | _none_ | 0/0 matched (target 1) | _none_ | 0 | 0 | 10.0 |
 
 ## Cheat Detection / Scoring Failures
