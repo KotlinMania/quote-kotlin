@@ -6,7 +6,7 @@ import io.github.kotlinmania.procmacro2.Span
 
 /**
  * Constructs an [Ident] from a format string and arguments, analogous to
- * Rust's `format_ident!` macro.
+ * `formatIdent`.
  *
  * The format string uses `{}` placeholders that are replaced by the string
  * representation of the corresponding argument. Arguments implementing
@@ -67,16 +67,6 @@ public fun formatIdent(fmt: String, vararg args: Any?): Ident {
     val resolvedSpan = span ?: Span.callSite()
     return mkIdent(result, resolvedSpan)
 }
-
-/**
- * Construct an [Ident] from a string, handling `r#` raw prefixes.
- */
-internal fun mkIdent(id: String, span: Span): Ident =
-    if (id.startsWith("r#")) {
-        Ident.newRaw(id.substring(2), span)
-    } else {
-        Ident.new(id, span)
-    }
 
 private fun fragmentOf(arg: Any?, spec: Char? = null): Pair<String, Span?> =
     when (arg) {

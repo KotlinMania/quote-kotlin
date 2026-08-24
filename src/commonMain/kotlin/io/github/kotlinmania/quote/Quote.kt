@@ -14,8 +14,8 @@ import io.github.kotlinmania.procmacro2.TokenTree
 /**
  * Quasi-quote a token stream from a string template with interpolation.
  *
- * This is the Kotlin analogue of Rust's `quote! { ... }` macro. The template
- * string contains Rust-like source code. Interpolation is done with the
+ * This is the Kotlin analogue of the `quote!` macro. The template
+ * string contains source code. Interpolation is done with the
  * `` `#` `` marker followed by a variable name, which must be present in the
  * [interpolations] map. Repetition is done with `` `#`(...)* `` or
  * `` `#`(...),* `` syntax, where the separator is the character before `*`.
@@ -47,9 +47,9 @@ public fun quote(
  * Quasi-quote a token stream from a string template with interpolation,
  * using a spanned variant for hygienic macros.
  *
- * This is the Kotlin analogue of Rust's `quote_spanned! { span => ... }`
- * macro. All tokens originating within the quote invocation (i.e. not from
- * interpolated values) are spanned with [span] instead of [Span.callSite].
+ * This is the Kotlin analogue of the `quoteSpanned` macro. All tokens
+ * originating within the quote invocation (i.e. not from interpolated
+ * values) are spanned with [span] instead of [Span.callSite].
  */
 public fun quoteSpanned(
     span: Span,
@@ -117,7 +117,7 @@ private class QuoteParser(
                 continue
             }
 
-            // Lifetime
+            // Quoted token
             if (ch == '\'' && pos + 1 < template.length && isIdentStart(template[pos + 1])) {
                 emitLifetime(out)
                 continue
@@ -558,7 +558,7 @@ private class QuoteParser(
         }
     }
 
-    // -- Lifetime -----------------------------------------------------------
+    // -- Quoted tokens -----------------------------------------------------
 
     private fun emitLifetime(out: TokenStream) {
         // pos is at the apostrophe
@@ -566,7 +566,7 @@ private class QuoteParser(
         out.append(TokenTree.Punct(apostrophe))
         pos++ // skip apostrophe
 
-        // Check for raw lifetime: 'r#name
+        // Check for raw token: 'r#name
         if (pos + 1 < template.length &&
             template[pos] == 'r' &&
             pos + 1 < template.length &&

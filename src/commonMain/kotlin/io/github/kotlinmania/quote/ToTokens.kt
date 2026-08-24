@@ -1,4 +1,4 @@
-// port-lint: source src/to_tokens.rs
+// port-lint: source to_tokens.rs
 package io.github.kotlinmania.quote
 
 import io.github.kotlinmania.procmacro2.Group
@@ -67,12 +67,12 @@ public fun Long.toTokens(tokens: TokenStream) {
     tokens.append(Literal.i64Suffixed(this))
 }
 
-/** 128-bit signed integer interpolation — maps to the upstream i128 impl. */
+/** 128-bit signed integer interpolation. */
 public fun Long.i128ToTokens(tokens: TokenStream) {
     tokens.append(Literal.i128Suffixed(this))
 }
 
-/** Pointer-sized signed integer interpolation — maps to the upstream isize impl. */
+/** Pointer-sized signed integer interpolation. */
 public fun Long.isizeToTokens(tokens: TokenStream) {
     tokens.append(Literal.isizeSuffixed(this))
 }
@@ -93,12 +93,12 @@ public fun ULong.toTokens(tokens: TokenStream) {
     tokens.append(Literal.u64Suffixed(this))
 }
 
-/** 128-bit unsigned integer interpolation — maps to the upstream u128 impl. */
+/** 128-bit unsigned integer interpolation. */
 public fun ULong.u128ToTokens(tokens: TokenStream) {
     tokens.append(Literal.u128Suffixed(this))
 }
 
-/** Pointer-sized unsigned integer interpolation — maps to the upstream usize impl. */
+/** Pointer-sized unsigned integer interpolation. */
 public fun ULong.usizeToTokens(tokens: TokenStream) {
     tokens.append(Literal.usizeSuffixed(this))
 }

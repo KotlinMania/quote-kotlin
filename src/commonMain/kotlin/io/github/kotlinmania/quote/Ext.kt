@@ -1,4 +1,4 @@
-// port-lint: source src/ext.rs
+// port-lint: source ext.rs
 package io.github.kotlinmania.quote
 
 import io.github.kotlinmania.procmacro2.Group
@@ -7,6 +7,8 @@ import io.github.kotlinmania.procmacro2.Literal
 import io.github.kotlinmania.procmacro2.Punct
 import io.github.kotlinmania.procmacro2.TokenStream
 import io.github.kotlinmania.procmacro2.TokenTree
+
+internal interface Sealed
 
 /**
  * TokenStream extension trait with methods for appending tokens.
@@ -65,25 +67,45 @@ public fun TokenStream.append(token: Literal) {
 }
 
 public fun <T : ToTokens> TokenStream.appendAll(iter: Iterable<T>) {
+    doAppendAll(this, iter.iterator())
+}
+
+internal fun <T : ToTokens> doAppendAll(stream: TokenStream, iter: Iterator<T>) {
     for (token in iter) {
-        token.toTokens(this)
+        token.toTokens(stream)
     }
 }
 
 public fun <T : ToTokens, U : ToTokens> TokenStream.appendSeparated(iter: Iterable<T>, op: U) {
+    doAppendSeparated(this, iter.iterator(), op)
+}
+
+internal fun <T : ToTokens, U : ToTokens> doAppendSeparated(
+    stream: TokenStream,
+    iter: Iterator<T>,
+    op: U,
+) {
     var first = true
     for (token in iter) {
         if (!first) {
-            op.toTokens(this)
+            op.toTokens(stream)
         }
         first = false
-        token.toTokens(this)
+        token.toTokens(stream)
     }
 }
 
 public fun <T : ToTokens, U : ToTokens> TokenStream.appendTerminated(iter: Iterable<T>, term: U) {
+    doAppendTerminated(this, iter.iterator(), term)
+}
+
+internal fun <T : ToTokens, U : ToTokens> doAppendTerminated(
+    stream: TokenStream,
+    iter: Iterator<T>,
+    term: U,
+) {
     for (token in iter) {
-        token.toTokens(this)
-        term.toTokens(this)
+        token.toTokens(stream)
+        term.toTokens(stream)
     }
 }
