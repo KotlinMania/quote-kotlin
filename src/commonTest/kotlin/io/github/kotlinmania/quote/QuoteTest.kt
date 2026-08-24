@@ -19,7 +19,6 @@ private class X : ToTokens {
 }
 
 class QuoteTest {
-
     @Test
     fun testQuoteSimple() {
         val tokens = quote("struct Foo { }")
@@ -111,11 +110,12 @@ class QuoteTest {
 
     @Test
     fun testQuoteRepetition() {
-        val idents = listOf(
-            Ident.new("A", Span.callSite()),
-            Ident.new("B", Span.callSite()),
-            Ident.new("C", Span.callSite()),
-        )
+        val idents =
+            listOf(
+                Ident.new("A", Span.callSite()),
+                Ident.new("B", Span.callSite()),
+                Ident.new("C", Span.callSite()),
+            )
         val tokens = quote("`#`(`#`item)*", mapOf("item" to idents))
         val str = tokens.toString()
         assertTrue(str.contains("A"), "Expected A in: $str")
@@ -125,11 +125,12 @@ class QuoteTest {
 
     @Test
     fun testQuoteRepetitionWithSeparator() {
-        val idents = listOf(
-            Ident.new("A", Span.callSite()),
-            Ident.new("B", Span.callSite()),
-            Ident.new("C", Span.callSite()),
-        )
+        val idents =
+            listOf(
+                Ident.new("A", Span.callSite()),
+                Ident.new("B", Span.callSite()),
+                Ident.new("C", Span.callSite()),
+            )
         val tokens = quote("`#`(`#`item),*", mapOf("item" to idents))
         val str = tokens.toString()
         assertTrue(str.contains("A"))
@@ -225,8 +226,9 @@ class QuoteTest {
         val path = quote("SomeTrait :: serialize_with")
         val value = quote("self . x")
 
-        val tokens = quote(
-            """
+        val tokens =
+            quote(
+                """
             struct SerializeWith `#`generics `#`whereClause {
                 value: &'a `#`fieldTy,
                 phantom: ::std::marker::PhantomData<`#`itemTy>,
@@ -245,15 +247,15 @@ class QuoteTest {
                 phantom: ::std::marker::PhantomData::<`#`itemTy>,
             }
             """,
-            mapOf(
-                "generics" to generics,
-                "whereClause" to whereClause,
-                "fieldTy" to fieldTy,
-                "itemTy" to itemTy,
-                "path" to path,
-                "value" to value,
-            ),
-        )
+                mapOf(
+                    "generics" to generics,
+                    "whereClause" to whereClause,
+                    "fieldTy" to fieldTy,
+                    "itemTy" to itemTy,
+                    "path" to path,
+                    "value" to value,
+                ),
+            )
 
         val rendered = tokens.toString()
         assertEquals(3, Regex("< 'a , T >").findAll(rendered).count())
@@ -285,23 +287,24 @@ class QuoteTest {
         val uu128 = TokenStream.new().also { 1.toULong().u128ToTokens(it) }
         val uusize = TokenStream.new().also { 1.toULong().usizeToTokens(it) }
 
-        val tokens = quote(
-            "`#`ii8 `#`ii16 `#`ii32 `#`ii64 `#`ii128 `#`iisize `#`uu8 `#`uu16 `#`uu32 `#`uu64 `#`uu128 `#`uusize",
-            mapOf(
-                "ii8" to ii8,
-                "ii16" to ii16,
-                "ii32" to ii32,
-                "ii64" to ii64,
-                "ii128" to ii128,
-                "iisize" to iisize,
-                "uu8" to uu8,
-                "uu16" to uu16,
-                "uu32" to uu32,
-                "uu64" to uu64,
-                "uu128" to uu128,
-                "uusize" to uusize,
-            ),
-        )
+        val tokens =
+            quote(
+                "`#`ii8 `#`ii16 `#`ii32 `#`ii64 `#`ii128 `#`iisize `#`uu8 `#`uu16 `#`uu32 `#`uu64 `#`uu128 `#`uusize",
+                mapOf(
+                    "ii8" to ii8,
+                    "ii16" to ii16,
+                    "ii32" to ii32,
+                    "ii64" to ii64,
+                    "ii128" to ii128,
+                    "iisize" to iisize,
+                    "uu8" to uu8,
+                    "uu16" to uu16,
+                    "uu32" to uu32,
+                    "uu64" to uu64,
+                    "uu128" to uu128,
+                    "uusize" to uusize,
+                ),
+            )
         val str = tokens.toString()
         assertTrue(str.contains("- 1i8"), "Expected - 1i8 in: $str")
         assertTrue(str.contains("- 1i16"), "Expected - 1i16 in: $str")
@@ -324,17 +327,18 @@ class QuoteTest {
     @Test
     fun testChar() {
         // Rust: interpolates various chars with escapes.
-        val tokens = quote(
-            "`#`zero `#`pound `#`q `#`apost `#`newline `#`heart",
-            mapOf(
-                "zero" to '\u0001',
-                "pound" to '#',
-                "q" to '"',
-                "apost" to '\'',
-                "newline" to '\n',
-                "heart" to '\u2764',
-            ),
-        )
+        val tokens =
+            quote(
+                "`#`zero `#`pound `#`q `#`apost `#`newline `#`heart",
+                mapOf(
+                    "zero" to '\u0001',
+                    "pound" to '#',
+                    "q" to '"',
+                    "apost" to '\'',
+                    "newline" to '\n',
+                    "heart" to '\u2764',
+                ),
+            )
         val str = tokens.toString()
         assertTrue(str.contains("'\\u{1}'"), "Expected escaped control char in: $str")
         assertTrue(str.contains("'#'"), "Expected pound in: $str")
@@ -373,8 +377,8 @@ class QuoteTest {
         val bytes = byteArrayOf(1, ' '.code.toByte(), 'a'.code.toByte(), ' '.code.toByte(), '\''.code.toByte(), 'b'.code.toByte(), ' '.code.toByte(), '"'.code.toByte(), ' '.code.toByte(), 'c'.code.toByte())
         val tokens = TokenStream.new()
         bytes.toCStringTokens(tokens)
-        assertTrue(tokens.toString().startsWith("c\""), "Expected c-string in: ${tokens.toString()}")
-        assertTrue(tokens.toString().contains("\\u{1}"), "Expected escape in: ${tokens.toString()}")
+        assertTrue(tokens.toString().startsWith("c\""), "Expected c-string in: $tokens")
+        assertTrue(tokens.toString().contains("\\u{1}"), "Expected escape in: $tokens")
     }
 
     @Test
@@ -430,10 +434,11 @@ class QuoteTest {
     fun testDuplicateNameRepetition() {
         // Rust: let foo = &["a", "b"]; quote! { #(#foo: #foo),* #(#foo: #foo),* }
         val foo = listOf("a", "b")
-        val tokens = quote(
-            "`#`(`#`foo : `#`foo),* `#`(`#`foo : `#`foo),*",
-            mapOf("foo" to foo),
-        )
+        val tokens =
+            quote(
+                "`#`(`#`foo : `#`foo),* `#`(`#`foo : `#`foo),*",
+                mapOf("foo" to foo),
+            )
         assertEquals("\"a\" : \"a\" , \"b\" : \"b\" \"a\" : \"a\" , \"b\" : \"b\"", tokens.toString())
     }
 
@@ -466,10 +471,11 @@ class QuoteTest {
         //       quote! { #(#rep #rep : #nonrep #nonrep),* }
         val rep = listOf("a", "b")
         val nonrep = "c"
-        val tokens = quote(
-            "`#`(`#`rep `#`rep : `#`nonrep `#`nonrep),*",
-            mapOf("rep" to rep, "nonrep" to nonrep),
-        )
+        val tokens =
+            quote(
+                "`#`(`#`rep `#`rep : `#`nonrep `#`nonrep),*",
+                mapOf("rep" to rep, "nonrep" to nonrep),
+            )
         assertEquals("\"a\" \"a\" : \"c\" \"c\" , \"b\" \"b\" : \"c\" \"c\"", tokens.toString())
     }
 
@@ -511,11 +517,12 @@ class QuoteTest {
         // Rust: let mut a = quote!(a); let b = quote!(b); a.append_all(b);
         val a = quote("a")
         val b = quote("b")
-        val wrapper = object : ToTokens {
-            override fun toTokens(tokens: TokenStream) {
-                b.toTokens(tokens)
+        val wrapper =
+            object : ToTokens {
+                override fun toTokens(tokens: TokenStream) {
+                    b.toTokens(tokens)
+                }
             }
-        }
         a.appendAll(listOf(wrapper))
         assertEquals("a b", a.toString())
     }
@@ -617,11 +624,11 @@ class QuoteTest {
         // test with Span.callSite() and a DelimSpan derived from a Group.
         val span = Span.callSite()
         val tokens = quoteSpanned(span, "...")
-        assertTrue(tokens.toString().contains("."), "Expected dots in: ${tokens.toString()}")
+        assertTrue(tokens.toString().contains("."), "Expected dots in: $tokens")
 
         val group = Group(Delimiter.Parenthesis, TokenStream.new())
         val delimSpan = group.delimSpan()
         val tokens2 = quoteSpanned(delimSpan.join(), "...")
-        assertTrue(tokens2.toString().contains("."), "Expected dots in: ${tokens2.toString()}")
+        assertTrue(tokens2.toString().contains("."), "Expected dots in: $tokens2")
     }
 }
