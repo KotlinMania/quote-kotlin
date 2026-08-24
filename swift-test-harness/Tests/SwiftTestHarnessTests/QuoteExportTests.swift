@@ -1,22 +1,12 @@
-#if canImport(Testing)
 import Testing
 import Quote
 
-@Suite("Quote Swift Export Smoke Tests")
+@Suite("Quote Swift Export Suite")
 struct QuoteExportTests {
-    @Test("Swift module imports cleanly")
+    @Test("Swift module imports cleanly and basic quote works")
     func swiftModuleLoads() throws {
-        #expect(true)
+        let ts = quote(template: "hello", interpolations: [:])
+        #expect(ts.isEmpty() == false)
     }
 }
-#elseif canImport(XCTest)
-import XCTest
-import Quote
-
-final class QuoteExportTests: XCTestCase {
-    func testSwiftModuleLoads() throws {
-        XCTAssertTrue(true, "Quote swift module imported cleanly")
-    }
-}
-#endif
 
