@@ -6,8 +6,8 @@ import io.github.kotlinmania.procmacro2.Group
 import io.github.kotlinmania.procmacro2.Ident
 import io.github.kotlinmania.procmacro2.Literal
 import io.github.kotlinmania.procmacro2.Punct
-import io.github.kotlinmania.procmacro2.Span
 import io.github.kotlinmania.procmacro2.Spacing
+import io.github.kotlinmania.procmacro2.Span
 import io.github.kotlinmania.procmacro2.TokenStream
 import io.github.kotlinmania.procmacro2.TokenTree
 
@@ -65,9 +65,7 @@ public fun quoteSpanned(
 /**
  * Convenience overload for a single interpolation pair.
  */
-public fun quote(template: String, vararg pairs: Pair<String, *>): TokenStream {
-    return quote(template, mapOf(*pairs))
-}
+public fun quote(template: String, vararg pairs: Pair<String, *>): TokenStream = quote(template, mapOf(*pairs))
 
 /**
  * Convenience overload for quoteSpanned with pairs.
@@ -76,9 +74,7 @@ public fun quoteSpanned(
     span: Span,
     template: String,
     vararg pairs: Pair<String, *>,
-): TokenStream {
-    return quoteSpanned(span, template, mapOf(*pairs))
-}
+): TokenStream = quoteSpanned(span, template, mapOf(*pairs))
 
 // ---------------------------------------------------------------------------
 // Parser — converts the template string into a TokenStream
@@ -101,7 +97,8 @@ private class QuoteParser(
                 continue
             }
 
-            if (ch == '/' && pos + 1 < template.length &&
+            if (ch == '/' &&
+                pos + 1 < template.length &&
                 (template[pos + 1] == '/' || template[pos + 1] == '*')
             ) {
                 emitComment(out)
@@ -145,8 +142,11 @@ private class QuoteParser(
             }
 
             // Raw identifier: r#ident
-            if (ch == 'r' && pos + 1 < template.length && template[pos + 1] == '#' &&
-                pos + 2 < template.length && isIdentStart(template[pos + 2])
+            if (ch == 'r' &&
+                pos + 1 < template.length &&
+                template[pos + 1] == '#' &&
+                pos + 2 < template.length &&
+                isIdentStart(template[pos + 2])
             ) {
                 emitRawIdent(out)
                 continue
@@ -172,20 +172,41 @@ private class QuoteParser(
     // -- Interpolation ------------------------------------------------------
 
     private fun isInterpolationMarker(): Boolean {
-        // Check for `#` (backtick-hash-backtick) — the interpolation marker
-        // In the template string, interpolation is written as `#`name
-        // The actual bytes are: backtick, hash, backtick
-        return pos + 2 < template.length &&
+        // Check for `#` (backtick-hash-backtick) or bare `#` if followed by `(` or an ident in interpolations
+        if (pos + 2 < template.length &&
             template[pos] == '`' &&
             template[pos + 1] == '#' &&
             template[pos + 2] == '`'
+        ) {
+            return true
+        }
+        if (template[pos] == '#') {
+            if (pos + 1 < template.length && template[pos + 1] == '(') {
+                return true
+            }
+            if (pos + 1 < template.length && isIdentStart(template[pos + 1])) {
+                val nextPos = pos + 1
+                var end = nextPos
+                while (end < template.length && isIdentPart(template[end])) end++
+                val ident = template.substring(nextPos, end)
+                if (interpolations.containsKey(ident)) {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     private fun emitInterpolation(out: TokenStream) {
-        // Skip the `#` marker (3 chars: backtick, hash, backtick)
-        pos += 3
+        if (template[pos] == '`') {
+            // Skip the `#` marker (3 chars: backtick, hash, backtick)
+            pos += 3
+        } else {
+            // Skip bare `#`
+            pos += 1
+        }
 
-        // Check for repetition: `#`(...)
+        // Check for repetition: `#`(...) or #(...)
         if (pos < template.length && template[pos] == '(') {
             emitRepetition(out)
             return
@@ -270,7 +291,9 @@ private class QuoteParser(
         var i = 0
         while (i < body.length) {
             if (i + 2 < body.length &&
-                body[i] == '`' && body[i + 1] == '#' && body[i + 2] == '`'
+                body[i] == '`' &&
+                body[i + 1] == '#' &&
+                body[i + 2] == '`'
             ) {
                 i += 3
                 val name = StringBuilder()
@@ -280,6 +303,17 @@ private class QuoteParser(
                 }
                 if (name.isNotEmpty()) {
                     names.add(name.toString())
+                }
+            } else if (body[i] == '#' && i + 1 < body.length && isIdentStart(body[i + 1])) {
+                val start = i + 1
+                var end = start
+                while (end < body.length && isIdentPart(body[end])) end++
+                val ident = body.substring(start, end)
+                if (interpolations.containsKey(ident)) {
+                    names.add(ident)
+                    i = end
+                } else {
+                    i++
                 }
             } else {
                 i++
@@ -387,9 +421,7 @@ private class QuoteParser(
 
     // -- Punctuation --------------------------------------------------------
 
-    private fun isPunct(ch: Char): Boolean {
-        return ch in "!#%&'*+,-./:;<=>?@^|~$"
-    }
+    private fun isPunct(ch: Char): Boolean = ch in "!#%&'*+,-./:;<=>?@^|~$"
 
     private fun emitPunct(out: TokenStream) {
         val first = template[pos]
@@ -402,7 +434,8 @@ private class QuoteParser(
             when (two) {
                 "::", "->", "=>", "==", "!=", "<=", ">=", "&&", "||",
                 "<<", ">>", "+=", "-=", "*=", "/=", "&=", "|=", "^=",
-                "%=", "..", "<-" -> {
+                "%=", "..", "<-",
+                -> {
                     // Check for three-char operators
                     if (pos + 1 < template.length) {
                         val third = template[pos + 1]
@@ -481,12 +514,13 @@ private class QuoteParser(
 
     private fun emitGroup(out: TokenStream) {
         val open = template[pos]
-        val (delimiter, close) = when (open) {
-            '(' -> Delimiter.Parenthesis to ')'
-            '[' -> Delimiter.Bracket to ']'
-            '{' -> Delimiter.Brace to '}'
-            else -> return
-        }
+        val (delimiter, close) =
+            when (open) {
+                '(' -> Delimiter.Parenthesis to ')'
+                '[' -> Delimiter.Bracket to ']'
+                '{' -> Delimiter.Brace to '}'
+                else -> return
+            }
         pos++ // skip opening delimiter
 
         // Collect the inner content until the matching closing delimiter
@@ -533,9 +567,12 @@ private class QuoteParser(
         pos++ // skip apostrophe
 
         // Check for raw lifetime: 'r#name
-        if (pos + 1 < template.length && template[pos] == 'r' &&
-            pos + 1 < template.length && template[pos + 1] == '#' &&
-            pos + 2 < template.length && isIdentStart(template[pos + 2])
+        if (pos + 1 < template.length &&
+            template[pos] == 'r' &&
+            pos + 1 < template.length &&
+            template[pos + 1] == '#' &&
+            pos + 2 < template.length &&
+            isIdentStart(template[pos + 2])
         ) {
             pos++ // skip r
             pos++ // skip #
@@ -599,11 +636,7 @@ private class QuoteParser(
         return template.substring(start, pos)
     }
 
-    private fun isIdentStart(ch: Char): Boolean {
-        return ch.isLetter() || ch == '_'
-    }
+    private fun isIdentStart(ch: Char): Boolean = ch.isLetter() || ch == '_'
 
-    private fun isIdentPart(ch: Char): Boolean {
-        return ch.isLetterOrDigit() || ch == '_'
-    }
+    private fun isIdentPart(ch: Char): Boolean = ch.isLetterOrDigit() || ch == '_'
 }

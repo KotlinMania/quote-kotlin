@@ -71,16 +71,15 @@ public fun formatIdent(fmt: String, vararg args: Any?): Ident {
 /**
  * Construct an [Ident] from a string, handling `r#` raw prefixes.
  */
-internal fun mkIdent(id: String, span: Span): Ident {
-    return if (id.startsWith("r#")) {
+internal fun mkIdent(id: String, span: Span): Ident =
+    if (id.startsWith("r#")) {
         Ident.newRaw(id.substring(2), span)
     } else {
         Ident.new(id, span)
     }
-}
 
-private fun fragmentOf(arg: Any?, spec: Char? = null): Pair<String, Span?> {
-    return when (arg) {
+private fun fragmentOf(arg: Any?, spec: Char? = null): Pair<String, Span?> =
+    when (arg) {
         is IdentFragment -> {
             val text = arg.formatIdentFragment()
             Pair(text, arg.span())
@@ -90,43 +89,47 @@ private fun fragmentOf(arg: Any?, spec: Char? = null): Pair<String, Span?> {
             Pair(text, arg.span())
         }
         is UInt -> {
-            val text = when (spec) {
-                'o' -> arg.toString(8)
-                'x' -> arg.toString(16)
-                'X' -> arg.toString(16).uppercase()
-                'b' -> arg.toString(2)
-                else -> arg.toString()
-            }
+            val text =
+                when (spec) {
+                    'o' -> arg.toString(8)
+                    'x' -> arg.toString(16)
+                    'X' -> arg.toString(16).uppercase()
+                    'b' -> arg.toString(2)
+                    else -> arg.toString()
+                }
             Pair(text, null)
         }
         is ULong -> {
-            val text = when (spec) {
-                'o' -> arg.toString(8)
-                'x' -> arg.toString(16)
-                'X' -> arg.toString(16).uppercase()
-                'b' -> arg.toString(2)
-                else -> arg.toString()
-            }
+            val text =
+                when (spec) {
+                    'o' -> arg.toString(8)
+                    'x' -> arg.toString(16)
+                    'X' -> arg.toString(16).uppercase()
+                    'b' -> arg.toString(2)
+                    else -> arg.toString()
+                }
             Pair(text, null)
         }
         is Int -> {
-            val text = when (spec) {
-                'o' -> arg.toString(8)
-                'x' -> arg.toString(16)
-                'X' -> arg.toString(16).uppercase()
-                'b' -> arg.toString(2)
-                else -> arg.toString()
-            }
+            val text =
+                when (spec) {
+                    'o' -> arg.toString(8)
+                    'x' -> arg.toString(16)
+                    'X' -> arg.toString(16).uppercase()
+                    'b' -> arg.toString(2)
+                    else -> arg.toString()
+                }
             Pair(text, null)
         }
         is Long -> {
-            val text = when (spec) {
-                'o' -> arg.toString(8)
-                'x' -> arg.toString(16)
-                'X' -> arg.toString(16).uppercase()
-                'b' -> arg.toString(2)
-                else -> arg.toString()
-            }
+            val text =
+                when (spec) {
+                    'o' -> arg.toString(8)
+                    'x' -> arg.toString(16)
+                    'X' -> arg.toString(16).uppercase()
+                    'b' -> arg.toString(2)
+                    else -> arg.toString()
+                }
             Pair(text, null)
         }
         is String -> Pair(arg, null)
@@ -134,4 +137,3 @@ private fun fragmentOf(arg: Any?, spec: Char? = null): Pair<String, Span?> {
         is Boolean -> Pair(arg.toString(), null)
         else -> Pair(arg.toString(), null)
     }
-}
