@@ -2,7 +2,7 @@
 
 **Generated:** 2026-08-25
 **Source:** tmp/quote/src
-**Target:** src/commonMain/kotlin/io/github/kotlinmania/quote
+**Target:** src/commonMain/kotlin
 
 ## Executive Summary
 
@@ -18,8 +18,8 @@
 | Missing source symbol files | 0 | 0 symbols |
 | Cheat/scoring failures | 2 | forced to 0% |
 | Total source files | 7 | 100% |
-| Target units (paired) | 9 | - |
-| Target files (total) | 9 | - |
+| Target units (paired) | 10 | - |
+| Target files (total) | 10 | - |
 | Porting progress | 7 | 100.0% (matched) |
 | Missing files | 0 | 0.0% |
 
