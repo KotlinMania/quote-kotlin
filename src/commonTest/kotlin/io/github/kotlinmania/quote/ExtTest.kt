@@ -5,7 +5,9 @@ import io.github.kotlinmania.procmacro2.TokenStream
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-private class StreamWrapper(private val stream: TokenStream) : ToTokens {
+private class StreamWrapper(
+    private val stream: TokenStream,
+) : ToTokens {
     override fun toTokens(tokens: TokenStream) {
         stream.toTokens(tokens)
     }
