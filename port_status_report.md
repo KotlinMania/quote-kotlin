@@ -1,8 +1,8 @@
 # Code Port - Progress Report
 
-**Generated:** 2026-08-24
+**Generated:** 2026-08-25
 **Source:** tmp/quote/src
-**Target:** src/commonMain/kotlin
+**Target:** src/commonMain/kotlin/io/github/kotlinmania/quote
 
 ## Executive Summary
 
