@@ -2,7 +2,7 @@
 
 **Generated:** 2026-08-25
 **Source:** tmp/quote/src
-**Target:** src/commonMain/kotlin/io/github/kotlinmania/quote
+**Target:** src/commonMain/kotlin
 
 ## Executive Summary
 
