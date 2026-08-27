@@ -1,4 +1,4 @@
-// port-lint: source quote/src/to_tokens.rs
+// port-lint: source to_tokens.rs
 package io.github.kotlinmania.quote
 
 import io.github.kotlinmania.procmacro2.Group

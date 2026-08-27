@@ -1,4 +1,4 @@
-// port-lint: tests quote/tests/compiletest.rs
+// port-lint: tests tests/compiletest.rs
 package io.github.kotlinmania.quote
 
 import kotlin.test.Test

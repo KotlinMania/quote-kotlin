@@ -1,4 +1,4 @@
-// port-lint: source quote/src/lib.rs
+// port-lint: source lib.rs
 package io.github.kotlinmania.quote
 
 import io.github.kotlinmania.procmacro2.Delimiter
@@ -119,7 +119,7 @@ private class QuoteParser(
 
             // Quoted token
             if (ch == '\'' && pos + 1 < template.length && isIdentStart(template[pos + 1])) {
-                emitLifetime(out)
+                emitQuotedIdent(out)
                 continue
             }
 
@@ -560,7 +560,7 @@ private class QuoteParser(
 
     // -- Quoted tokens -----------------------------------------------------
 
-    private fun emitLifetime(out: TokenStream) {
+    private fun emitQuotedIdent(out: TokenStream) {
         // pos is at the apostrophe
         val apostrophe = Punct('\'', Spacing.Joint, span)
         out.append(TokenTree.Punct(apostrophe))
