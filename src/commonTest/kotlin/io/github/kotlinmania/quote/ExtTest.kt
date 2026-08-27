@@ -1,4 +1,4 @@
-// port-lint: tests tests/test.rs
+// port-lint: tests quote/tests/test.rs
 package io.github.kotlinmania.quote
 
 import io.github.kotlinmania.procmacro2.TokenStream

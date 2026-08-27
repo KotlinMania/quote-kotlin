@@ -1,4 +1,4 @@
-// port-lint: source spanned.rs
+// port-lint: source quote/src/spanned.rs
 package io.github.kotlinmania.quote
 
 import io.github.kotlinmania.procmacro2.DelimSpan
