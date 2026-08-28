@@ -5,12 +5,12 @@ Based on AST analysis, here are the concrete next steps.
 ## Summary
 
 - **Files Present:** 7/7 (100.0%)
-- **Function parity:** 35/37 matched (target 205) — 94.6%
-- **Class/type parity:** 21/23 matched (target 24) — 91.3%
-- **Combined symbol parity:** 56/60 matched (target 229) — 93.3%
+- **Function parity:** 35/37 matched (target 174) — 94.6%
+- **Class/type parity:** 21/23 matched (target 23) — 91.3%
+- **Combined symbol parity:** 56/60 matched (target 197) — 93.3%
 - **Average inline-code cosine:** 0.43 (function body across 7 matched files)
 - **Average documentation cosine:** 0.44 (doc text across 7 matched files)
-- **Cheat-zeroed Files:** 2
+- **Cheat-zeroed Files:** 0
 - **Critical Issues:** 5 files with <0.60 function similarity
 
 ## Priority 1: Fix Incomplete High-Dependency Files
@@ -49,18 +49,7 @@ Every matched file is listed below with function and type symbol parity.
 - **Types:** 1/1 matched (target 3)
 - **Missing types:** _none_
 
-### 3. format
-
-- **Target:** `quote.FormatIdent [ZERO]`
-- **Similarity:** 0.00
-- **Dependents:** 1
-- **Priority Score:** 1000010.0
-- **Functions:** 0/0 matched (target 2)
-- **Missing functions:** _none_
-- **Types:** 0/0 matched
-- **Missing types:** _none_
-
-### 4. runtime
+### 3. runtime
 
 - **Target:** `quote.Runtime`
 - **Similarity:** 0.42
@@ -71,7 +60,7 @@ Every matched file is listed below with function and type symbol parity.
 - **Types:** 16/17 matched (target 16)
 - **Missing types:** `IdentFragmentAdapter`
 
-### 5. spanned
+### 4. spanned
 
 - **Target:** `quote.Spanned`
 - **Similarity:** 0.89
@@ -82,7 +71,7 @@ Every matched file is listed below with function and type symbol parity.
 - **Types:** 1/2 matched (target 1)
 - **Missing types:** `Sealed`
 
-### 6. ext
+### 5. ext
 
 - **Target:** `quote.Ext`
 - **Similarity:** 0.83
@@ -93,17 +82,6 @@ Every matched file is listed below with function and type symbol parity.
 - **Types:** 2/2 matched
 - **Missing types:** _none_
 
-### 7. lib
-
-- **Target:** `quote.Quote [ZERO]`
-- **Similarity:** 0.00
-- **Dependents:** 0
-- **Priority Score:** 10.0
-- **Functions:** 0/0 matched (target 29)
-- **Missing functions:** _none_
-- **Types:** 0/0 matched (target 1)
-- **Missing types:** _none_
-
 ## Success Criteria
 
 For each file to be considered "complete":
@@ -112,4 +90,18 @@ For each file to be considered "complete":
 - All tests ported
 - Documentation ported
 - port-lint header present
+
+## Reexport / Wiring Modules
+
+These files match `reexport_modules` patterns in `.ast_distance_config.json`. They are filtered out of
+normal priority and missing-file ladders because they are wiring
+modules, not direct logic ports. Consult them for call-site routing;
+do not treat them as the next implementation target by default.
+
+### Matched
+
+| Source | Target | Path |
+|--------|--------|------|
+| `format` | `quote.FormatIdent` | `format` |
+| `lib` | `quote.Quote` | `lib` |
 

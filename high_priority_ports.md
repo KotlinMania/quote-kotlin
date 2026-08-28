@@ -12,16 +12,13 @@ This list is complete and includes function/type detail for every matched file. 
 |------|--------|--------|------------|------|-----------|-------------------|-------|---------------|-----------|------------|----------|
 | 1 | `to_tokens` | `quote.ToTokens` | 0.58 | 4 | 3/3 matched (target 28) | _none_ | 1/1 matched | _none_ | 0 | 4 | 4000404.2 |
 | 2 | `ident_fragment` | `quote.IdentFragment` | 0.25 | 1 | 2/2 matched (target 11) | _none_ | 1/1 matched (target 3) | _none_ | 0 | 3 | 1000307.4 |
-| 3 | `format` | `quote.FormatIdent [ZERO]` | 0.00 | 1 | 0/0 matched (target 2) | _none_ | 0/0 matched | _none_ | 0 | 0 | 1000010.0 |
-| 4 | `runtime` | `quote.Runtime` | 0.42 | 0 | 21/23 matched (target 120) | `span`, `fmt` | 16/17 matched (target 16) | `IdentFragmentAdapter` | 3 | 40 | 34005.8 |
-| 5 | `spanned` | `quote.Spanned` | 0.89 | 0 | 2/2 matched (target 4) | _none_ | 1/2 matched (target 1) | `Sealed` | 1 | 4 | 10401.1 |
-| 6 | `ext` | `quote.Ext` | 0.83 | 0 | 7/7 matched (target 11) | _none_ | 2/2 matched | _none_ | 0 | 9 | 901.7 |
-| 7 | `lib` | `quote.Quote [ZERO]` | 0.00 | 0 | 0/0 matched (target 29) | _none_ | 0/0 matched (target 1) | _none_ | 0 | 0 | 10.0 |
+| 3 | `runtime` | `quote.Runtime` | 0.42 | 0 | 21/23 matched (target 120) | `span`, `fmt` | 16/17 matched (target 16) | `IdentFragmentAdapter` | 3 | 40 | 34005.8 |
+| 4 | `spanned` | `quote.Spanned` | 0.89 | 0 | 2/2 matched (target 4) | _none_ | 1/2 matched (target 1) | `Sealed` | 1 | 4 | 10401.1 |
+| 5 | `ext` | `quote.Ext` | 0.83 | 0 | 7/7 matched (target 11) | _none_ | 2/2 matched | _none_ | 0 | 9 | 901.7 |
 
 ## Cheat Detection / Scoring Failures
 
-- `format` -> `quote.FormatIdent [ZERO]`: function-by-function score forced to 0. no source functions found; target defines functions; report scoring is function-by-function only
-- `lib` -> `quote.Quote [ZERO]`: function-by-function score forced to 0. Quote.kt: Rust lifetime explanation in Kotlin comments; no source functions found; target defines functions; report scoring is function-by-function only
+_None detected._
 
 ## Critical Issues (Function Similarity < 0.60 with Dependencies)
 
@@ -43,16 +40,21 @@ These files need immediate attention:
   - Types: 1/1 matched (target 3)
   - Missing types: _none_
 
-- **format** → `quote.FormatIdent [ZERO]`
-  - Function similarity: 0.00
-  - Dependencies: 1
-  - Functions: 0/0 matched (target 2)
-  - Missing functions: _none_
-  - Types: 0/0 matched
-  - Missing types: _none_
-  - Scoring failure: no source functions found; target defines functions; report scoring is function-by-function only
-
 ## Missing Files (by Dependents)
 
 No missing files detected.
+
+## Reexport / Wiring Modules
+
+These files match `reexport_modules` patterns in `.ast_distance_config.json`. They are filtered out of
+normal priority and missing-file ladders because they are wiring
+modules, not direct logic ports. Consult them for call-site routing;
+do not treat them as the next implementation target by default.
+
+### Matched
+
+| Source | Target | Path |
+|--------|--------|------|
+| `format` | `quote.FormatIdent` | `format` |
+| `lib` | `quote.Quote` | `lib` |
 
