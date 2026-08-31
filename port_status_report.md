@@ -1,31 +1,31 @@
 # Code Port - Progress Report
 
-**Generated:** 2026-08-28
-**Source:** tmp/quote/src
-**Target:** src/commonMain/kotlin
+**Generated:** 2026-08-31
+**Source:** tmp
+**Target:** src
 
 ## Executive Summary
 
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| Function parity | 35/37 matched (target 174) | 94.6% |
-| Class/type parity | 21/23 matched (target 23) | 91.3% |
-| Combined symbol parity | 56/60 matched (target 197) | 93.3% |
-| Average function body similarity | 0.43 | inline-code cosine |
-| Average documentation similarity | 0.44 | doc text cosine |
-| Missing source functions | 0 | 0% parity until ported |
-| Missing source classes/types | 0 | 0% parity until ported |
-| Missing source symbol files | 0 | 0 symbols |
+| Function parity | 35/91 matched (target 174) | 38.5% |
+| Class/type parity | 21/26 matched (target 23) | 80.8% |
+| Combined symbol parity | 56/117 matched (target 197) | 47.9% |
+| Average function body similarity | 0.50 | inline-code cosine |
+| Average documentation similarity | 0.43 | doc text cosine |
+| Missing source functions | 54 | 0% parity until ported |
+| Missing source classes/types | 3 | 0% parity until ported |
+| Missing source symbol files | 10 | 57 symbols |
 | Cheat/scoring failures | 0 | forced to 0% |
-| Total source files | 7 | 100% |
+| Total source files | 17 | 100% |
 | Target units (paired) | 10 | - |
 | Target files (total) | 10 | - |
-| Porting progress | 7 | 100.0% (matched) |
-| Missing files | 0 | 0.0% |
+| Porting progress | 7 | 41.2% (matched) |
+| Missing files | 10 | 58.8% |
 
 ## Port Quality Analysis
 
-**Average Function Similarity:** 0.43
+**Average Function Similarity:** 0.50
 
 Similarity in this report is the required function-by-function body/parameter score. Class/type parity and symbol deficits are reported beside it; whole-file shape is diagnostic only.
 
@@ -39,11 +39,11 @@ Every matched file is listed from lowest function body/parameter similarity upwa
 
 | Rank | Source | Target | Function similarity | Functions | Missing functions | Types | Missing types | Tests | Symbol deficit | Priority |
 |------|--------|--------|---------------------|-----------|-------------------|-------|---------------|-------|----------------|----------|
-| 1 | `ident_fragment` | `quote.IdentFragment` | 0.25 | 2/2 matched (target 11) | _none_ | 1/1 matched (target 3) | _none_ | - | 0 | 1000307.4 |
-| 2 | `runtime` | `quote.Runtime` | 0.42 | 21/23 matched (target 120) | `span`, `fmt` | 16/17 matched (target 16) | `IdentFragmentAdapter` | - | 3 | 34005.8 |
-| 3 | `to_tokens` | `quote.ToTokens` | 0.58 | 3/3 matched (target 28) | _none_ | 1/1 matched | _none_ | - | 0 | 4000404.2 |
-| 4 | `ext` | `quote.Ext` | 0.83 | 7/7 matched (target 11) | _none_ | 2/2 matched | _none_ | - | 0 | 901.7 |
-| 5 | `spanned` | `quote.Spanned` | 0.89 | 2/2 matched (target 4) | _none_ | 1/2 matched (target 1) | `Sealed` | - | 1 | 10401.1 |
+| 1 | `quote.ident_fragment` | `quote.IdentFragment` | 0.25 | 2/2 matched (target 11) | _none_ | 1/1 matched (target 3) | _none_ | - | 0 | 1000307.4 |
+| 2 | `quote.runtime` | `quote.Runtime` | 0.42 | 21/23 matched (target 120) | `span`, `fmt` | 16/17 matched (target 16) | `IdentFragmentAdapter` | - | 3 | 34005.8 |
+| 3 | `quote.to_tokens` | `quote.ToTokens` | 0.58 | 3/3 matched (target 28) | _none_ | 1/1 matched | _none_ | - | 0 | 4000404.2 |
+| 4 | `quote.ext` | `quote.Ext` | 0.83 | 7/7 matched (target 11) | _none_ | 2/2 matched | _none_ | - | 0 | 901.7 |
+| 5 | `quote.spanned` | `quote.Spanned` | 0.89 | 2/2 matched (target 4) | _none_ | 1/2 matched (target 1) | `Sealed` | - | 1 | 10401.1 |
 
 ## Cheat Detection / Scoring Failures
 
@@ -53,9 +53,9 @@ _None detected._
 
 These files need significant work:
 
-- `ident_fragment` -> `quote.IdentFragment` (0.25, 1 deps)
-- `runtime` -> `quote.Runtime` (0.42)
-- `to_tokens` -> `quote.ToTokens` (0.58, 4 deps)
+- `quote.ident_fragment` -> `quote.IdentFragment` (0.25, 1 deps)
+- `quote.runtime` -> `quote.Runtime` (0.42)
+- `quote.to_tokens` -> `quote.ToTokens` (0.58, 4 deps)
 
 ## Incorrect Ports (Missing Types)
 
@@ -64,12 +64,23 @@ present in the Rust source file.
 
 | Source | Target | Missing types | Examples |
 |--------|--------|---------------|----------|
-| `runtime` | `quote.Runtime` | 1/17 | `IdentFragmentAdapter` |
-| `spanned` | `quote.Spanned` | 1/2 | `Sealed` |
+| `quote.runtime` | `quote.Runtime` | 1/17 | `IdentFragmentAdapter` |
+| `quote.spanned` | `quote.Spanned` | 1/2 | `Sealed` |
 
 ## High Priority Missing Files
 
-No missing files detected.
+| Rank | Source file | Expected target | Deps | Functions | Classes/types | Symbols | Source path | Expected path |
+|------|-------------|-----------------|------|-----------|---------------|---------|-------------|---------------|
+| 1 | `tests.test` | `quote.tests.Test` | 0 | 44 | 2 | 46 | `quote/tests/test.rs` | `quote/tests/Test.kt` |
+| 2 | `quote.build` | `quote.Build` | 0 | 2 | 0 | 2 | `quote/build.rs` | `quote/Build.kt` |
+| 3 | `ui.not-repeatable` | `quote.tests.ui.Not-repeatable` | 0 | 1 | 1 | 2 | `quote/tests/ui/not-repeatable.rs` | `quote/tests/ui/Not-repeatable.kt` |
+| 4 | `tests.compiletest` | `quote.tests.Compiletest` | 0 | 1 | 0 | 1 | `quote/tests/compiletest.rs` | `quote/tests/Compiletest.kt` |
+| 5 | `ui.does-not-have-iter` | `quote.tests.ui.Does-not-have-iter` | 0 | 1 | 0 | 1 | `quote/tests/ui/does-not-have-iter.rs` | `quote/tests/ui/Does-not-have-iter.kt` |
+| 6 | `ui.does-not-have-iter-interpolated` | `quote.tests.ui.Does-not-have-iter-interpolated` | 0 | 1 | 0 | 1 | `quote/tests/ui/does-not-have-iter-interpolated.rs` | `quote/tests/ui/Does-not-have-iter-interpolated.kt` |
+| 7 | `ui.does-not-have-iter-interpolated-dup` | `quote.tests.ui.Does-not-have-iter-interpolated-dup` | 0 | 1 | 0 | 1 | `quote/tests/ui/does-not-have-iter-interpolated-dup.rs` | `quote/tests/ui/Does-not-have-iter-interpolated-dup.kt` |
+| 8 | `ui.does-not-have-iter-separated` | `quote.tests.ui.Does-not-have-iter-separated` | 0 | 1 | 0 | 1 | `quote/tests/ui/does-not-have-iter-separated.rs` | `quote/tests/ui/Does-not-have-iter-separated.kt` |
+| 9 | `ui.not-quotable` | `quote.tests.ui.Not-quotable` | 0 | 1 | 0 | 1 | `quote/tests/ui/not-quotable.rs` | `quote/tests/ui/Not-quotable.kt` |
+| 10 | `ui.wrong-type-span` | `quote.tests.ui.Wrong-type-span` | 0 | 1 | 0 | 1 | `quote/tests/ui/wrong-type-span.rs` | `quote/tests/ui/Wrong-type-span.kt` |
 
 ## Documentation Gaps
 
@@ -79,10 +90,10 @@ There is missing documentation that is hurting overall scoring.
 
 Documentation gaps (>20%), complete list:
 
-- `lib` - 97% gap (1058 → 36 lines)
-- `format` - 94% gap (218 → 14 lines)
-- `to_tokens` - 74% gap (98 → 25 lines)
-- `ext` - 58% gap (62 → 26 lines)
+- `quote.lib` - 97% gap (1058 → 36 lines)
+- `quote.format` - 94% gap (218 → 14 lines)
+- `quote.to_tokens` - 74% gap (98 → 25 lines)
+- `quote.ext` - 58% gap (62 → 26 lines)
 
 ## Reexport / Wiring Modules
 
@@ -95,6 +106,6 @@ do not treat them as the next implementation target by default.
 
 | Source | Target | Path |
 |--------|--------|------|
-| `format` | `quote.FormatIdent` | `format` |
-| `lib` | `quote.Quote` | `lib` |
+| `quote.format` | `quote.FormatIdent` | `quote/src/format` |
+| `quote.lib` | `quote.Quote` | `quote/src/lib` |
 

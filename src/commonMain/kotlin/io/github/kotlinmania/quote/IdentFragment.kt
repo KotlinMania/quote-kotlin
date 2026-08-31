@@ -1,4 +1,4 @@
-// port-lint: source ident_fragment.rs
+// port-lint: source quote/src/ident_fragment.rs
 package io.github.kotlinmania.quote
 
 import io.github.kotlinmania.procmacro2.Ident
