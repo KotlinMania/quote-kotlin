@@ -1,4 +1,4 @@
-// port-lint: source quote/src/ext.rs
+// port-lint: source ext.rs
 package io.github.kotlinmania.quote
 
 import io.github.kotlinmania.procmacro2.Group
