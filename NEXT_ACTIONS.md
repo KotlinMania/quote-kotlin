@@ -4,12 +4,12 @@ Based on AST analysis, here are the concrete next steps.
 
 ## Summary
 
-- **Files Present:** 7/7 (100.0%)
-- **Function parity:** 35/37 matched (target 174) — 94.6%
-- **Class/type parity:** 21/23 matched (target 23) — 91.3%
-- **Combined symbol parity:** 56/60 matched (target 197) — 93.3%
-- **Average inline-code cosine:** 0.43 (function body across 7 matched files)
-- **Average documentation cosine:** 0.44 (doc text across 7 matched files)
+- **Files Present:** 7/17 (41.2%)
+- **Function parity:** 35/91 matched (target 174) — 38.5%
+- **Class/type parity:** 21/26 matched (target 23) — 80.8%
+- **Combined symbol parity:** 56/117 matched (target 197) — 47.9%
+- **Average inline-code cosine:** 0.50 (function body across 6 matched files)
+- **Average documentation cosine:** 0.43 (doc text across 6 matched files)
 - **Cheat-zeroed Files:** 0
 - **Critical Issues:** 5 files with <0.60 function similarity
 
@@ -27,7 +27,7 @@ No missing high-value files detected.
 
 Every matched file is listed below with function and type symbol parity.
 
-### 1. to_tokens
+### 1. quote.to_tokens
 
 - **Target:** `quote.ToTokens`
 - **Similarity:** 0.58
@@ -38,7 +38,7 @@ Every matched file is listed below with function and type symbol parity.
 - **Types:** 1/1 matched
 - **Missing types:** _none_
 
-### 2. ident_fragment
+### 2. quote.ident_fragment
 
 - **Target:** `quote.IdentFragment`
 - **Similarity:** 0.25
@@ -49,7 +49,7 @@ Every matched file is listed below with function and type symbol parity.
 - **Types:** 1/1 matched (target 3)
 - **Missing types:** _none_
 
-### 3. runtime
+### 3. quote.runtime
 
 - **Target:** `quote.Runtime`
 - **Similarity:** 0.42
@@ -60,7 +60,7 @@ Every matched file is listed below with function and type symbol parity.
 - **Types:** 16/17 matched (target 16)
 - **Missing types:** `IdentFragmentAdapter`
 
-### 4. spanned
+### 4. quote.spanned
 
 - **Target:** `quote.Spanned`
 - **Similarity:** 0.89
@@ -71,7 +71,7 @@ Every matched file is listed below with function and type symbol parity.
 - **Types:** 1/2 matched (target 1)
 - **Missing types:** `Sealed`
 
-### 5. ext
+### 5. quote.ext
 
 - **Target:** `quote.Ext`
 - **Similarity:** 0.83
@@ -102,6 +102,6 @@ do not treat them as the next implementation target by default.
 
 | Source | Target | Path |
 |--------|--------|------|
-| `format` | `quote.FormatIdent` | `format` |
-| `lib` | `quote.Quote` | `lib` |
+| `quote.format` | `quote.FormatIdent` | `quote/src/format` |
+| `quote.lib` | `quote.Quote` | `quote/src/lib` |
 
