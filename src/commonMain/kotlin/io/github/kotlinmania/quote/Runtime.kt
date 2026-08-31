@@ -1,4 +1,4 @@
-// port-lint: source runtime.rs
+// port-lint: source quote/src/runtime.rs
 package io.github.kotlinmania.quote
 
 import io.github.kotlinmania.procmacro2.DelimSpan
