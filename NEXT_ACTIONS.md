@@ -6,8 +6,8 @@ Based on AST analysis, here are the concrete next steps.
 
 - **Files Present:** 7/7 (100.0%)
 - **Function parity:** 35/37 matched (target 174) — 94.6%
-- **Class/type parity:** 22/23 matched (target 24) — 95.7%
-- **Combined symbol parity:** 57/60 matched (target 198) — 95.0%
+- **Class/type parity:** 21/23 matched (target 23) — 91.3%
+- **Combined symbol parity:** 56/60 matched (target 197) — 93.3%
 - **Average inline-code cosine:** 0.43 (function body across 7 matched files)
 - **Average documentation cosine:** 0.44 (doc text across 7 matched files)
 - **Cheat-zeroed Files:** 0
@@ -60,24 +60,24 @@ Every matched file is listed below with function and type symbol parity.
 - **Types:** 16/17 matched (target 16)
 - **Missing types:** `IdentFragmentAdapter`
 
-### 4. ext
+### 4. spanned
+
+- **Target:** `quote.Spanned`
+- **Similarity:** 0.89
+- **Dependents:** 0
+- **Priority Score:** 10401.1
+- **Functions:** 2/2 matched (target 4)
+- **Missing functions:** _none_
+- **Types:** 1/2 matched (target 1)
+- **Missing types:** `Sealed`
+
+### 5. ext
 
 - **Target:** `quote.Ext`
 - **Similarity:** 0.83
 - **Dependents:** 0
 - **Priority Score:** 901.7
 - **Functions:** 7/7 matched (target 11)
-- **Missing functions:** _none_
-- **Types:** 2/2 matched
-- **Missing types:** _none_
-
-### 5. spanned
-
-- **Target:** `quote.Spanned`
-- **Similarity:** 0.89
-- **Dependents:** 0
-- **Priority Score:** 401.1
-- **Functions:** 2/2 matched (target 4)
 - **Missing functions:** _none_
 - **Types:** 2/2 matched
 - **Missing types:** _none_
