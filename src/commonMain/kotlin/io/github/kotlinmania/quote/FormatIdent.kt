@@ -1,4 +1,4 @@
-// port-lint: source format.rs
+// port-lint: source quote/src/format.rs
 package io.github.kotlinmania.quote
 
 import io.github.kotlinmania.procmacro2.Ident
