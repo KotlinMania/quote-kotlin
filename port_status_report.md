@@ -9,8 +9,8 @@
 | Metric | Count | Percentage |
 |--------|-------|------------|
 | Function parity | 35/37 matched (target 174) | 94.6% |
-| Class/type parity | 22/23 matched (target 24) | 95.7% |
-| Combined symbol parity | 57/60 matched (target 198) | 95.0% |
+| Class/type parity | 21/23 matched (target 23) | 91.3% |
+| Combined symbol parity | 56/60 matched (target 197) | 93.3% |
 | Average function body similarity | 0.43 | inline-code cosine |
 | Average documentation similarity | 0.44 | doc text cosine |
 | Missing source functions | 0 | 0% parity until ported |
@@ -43,7 +43,7 @@ Every matched file is listed from lowest function body/parameter similarity upwa
 | 2 | `runtime` | `quote.Runtime` | 0.42 | 21/23 matched (target 120) | `span`, `fmt` | 16/17 matched (target 16) | `IdentFragmentAdapter` | - | 3 | 34005.8 |
 | 3 | `to_tokens` | `quote.ToTokens` | 0.58 | 3/3 matched (target 28) | _none_ | 1/1 matched | _none_ | - | 0 | 4000404.2 |
 | 4 | `ext` | `quote.Ext` | 0.83 | 7/7 matched (target 11) | _none_ | 2/2 matched | _none_ | - | 0 | 901.7 |
-| 5 | `spanned` | `quote.Spanned` | 0.89 | 2/2 matched (target 4) | _none_ | 2/2 matched | _none_ | - | 0 | 401.1 |
+| 5 | `spanned` | `quote.Spanned` | 0.89 | 2/2 matched (target 4) | _none_ | 1/2 matched (target 1) | `Sealed` | - | 1 | 10401.1 |
 
 ## Cheat Detection / Scoring Failures
 
@@ -65,6 +65,7 @@ present in the Rust source file.
 | Source | Target | Missing types | Examples |
 |--------|--------|---------------|----------|
 | `runtime` | `quote.Runtime` | 1/17 | `IdentFragmentAdapter` |
+| `spanned` | `quote.Spanned` | 1/2 | `Sealed` |
 
 ## High Priority Missing Files
 
