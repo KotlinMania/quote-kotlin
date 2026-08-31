@@ -65,7 +65,9 @@ public fun quoteSpanned(
 /**
  * Convenience overload for a single interpolation pair.
  */
-public fun quote(template: String, vararg pairs: Pair<String, *>): TokenStream = quote(template, mapOf(*pairs))
+public fun quote(template: String, vararg pairs: Pair<String, *>): TokenStream {
+    return quote(template, mapOf(*pairs))
+}
 
 /**
  * Convenience overload for quoteSpanned with pairs.
@@ -74,7 +76,9 @@ public fun quoteSpanned(
     span: Span,
     template: String,
     vararg pairs: Pair<String, *>,
-): TokenStream = quoteSpanned(span, template, mapOf(*pairs))
+): TokenStream {
+    return quoteSpanned(span, template, mapOf(*pairs))
+}
 
 // ---------------------------------------------------------------------------
 // Parser — converts the template string into a TokenStream
