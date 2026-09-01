@@ -4,10 +4,10 @@ Based on AST analysis, here are the concrete next steps.
 
 ## Summary
 
-- **Files Present:** 7/7 (100.0%)
-- **Function parity:** 35/37 matched (target 174) — 94.6%
-- **Class/type parity:** 21/23 matched (target 23) — 91.3%
-- **Combined symbol parity:** 56/60 matched (target 197) — 93.3%
+- **Files Present:** 7/17 (41.2%)
+- **Function parity:** 35/91 matched (target 174) — 38.5%
+- **Class/type parity:** 21/26 matched (target 23) — 80.8%
+- **Combined symbol parity:** 56/117 matched (target 197) — 47.9%
 - **Average inline-code cosine:** 0.50 (function body across 6 matched files)
 - **Average documentation cosine:** 0.43 (doc text across 6 matched files)
 - **Cheat-zeroed Files:** 0
@@ -27,9 +27,9 @@ No missing high-value files detected.
 
 Every matched file is listed below with function and type symbol parity.
 
-### 1. to_tokens
+### 1. quote.to_tokens
 
-- **Target:** `quote.ToTokens [PROVENANCE-FALLBACK]`
+- **Target:** `quote.ToTokens`
 - **Similarity:** 0.58
 - **Dependents:** 4
 - **Priority Score:** 4000404.2
@@ -37,13 +37,10 @@ Every matched file is listed below with function and type symbol parity.
 - **Missing functions:** _none_
 - **Types:** 1/1 matched
 - **Missing types:** _none_
-- **Provenance warning:** port-lint provenance header matched only after fallback normalization: `quote/src/to_tokens.rs` vs expected `to_tokens.rs`
-- **Proposed provenance header:** `// port-lint: source to_tokens.rs` (current: `// port-lint: source quote/src/to_tokens.rs`)
-- **Lint issues:** 1
 
-### 2. ident_fragment
+### 2. quote.ident_fragment
 
-- **Target:** `quote.IdentFragment [PROVENANCE-FALLBACK]`
+- **Target:** `quote.IdentFragment`
 - **Similarity:** 0.25
 - **Dependents:** 1
 - **Priority Score:** 1000307.4
@@ -51,13 +48,10 @@ Every matched file is listed below with function and type symbol parity.
 - **Missing functions:** _none_
 - **Types:** 1/1 matched (target 3)
 - **Missing types:** _none_
-- **Provenance warning:** port-lint provenance header matched only after fallback normalization: `quote/src/ident_fragment.rs` vs expected `ident_fragment.rs`
-- **Proposed provenance header:** `// port-lint: source ident_fragment.rs` (current: `// port-lint: source quote/src/ident_fragment.rs`)
-- **Lint issues:** 1
 
-### 3. runtime
+### 3. quote.runtime
 
-- **Target:** `quote.Runtime [PROVENANCE-FALLBACK]`
+- **Target:** `quote.Runtime`
 - **Similarity:** 0.42
 - **Dependents:** 0
 - **Priority Score:** 34005.8
@@ -65,13 +59,10 @@ Every matched file is listed below with function and type symbol parity.
 - **Missing functions:** `span`, `fmt`
 - **Types:** 16/17 matched (target 16)
 - **Missing types:** `IdentFragmentAdapter`
-- **Provenance warning:** port-lint provenance header matched only after fallback normalization: `quote/src/runtime.rs` vs expected `runtime.rs`
-- **Proposed provenance header:** `// port-lint: source runtime.rs` (current: `// port-lint: source quote/src/runtime.rs`)
-- **Lint issues:** 1
 
-### 4. spanned
+### 4. quote.spanned
 
-- **Target:** `quote.Spanned [PROVENANCE-FALLBACK]`
+- **Target:** `quote.Spanned`
 - **Similarity:** 0.89
 - **Dependents:** 0
 - **Priority Score:** 10401.1
@@ -79,13 +70,10 @@ Every matched file is listed below with function and type symbol parity.
 - **Missing functions:** _none_
 - **Types:** 1/2 matched (target 1)
 - **Missing types:** `Sealed`
-- **Provenance warning:** port-lint provenance header matched only after fallback normalization: `quote/src/spanned.rs` vs expected `spanned.rs`
-- **Proposed provenance header:** `// port-lint: source spanned.rs` (current: `// port-lint: source quote/src/spanned.rs`)
-- **Lint issues:** 1
 
-### 5. ext
+### 5. quote.ext
 
-- **Target:** `quote.Ext [PROVENANCE-FALLBACK]`
+- **Target:** `quote.Ext`
 - **Similarity:** 0.83
 - **Dependents:** 0
 - **Priority Score:** 901.7
@@ -93,9 +81,6 @@ Every matched file is listed below with function and type symbol parity.
 - **Missing functions:** _none_
 - **Types:** 2/2 matched
 - **Missing types:** _none_
-- **Provenance warning:** port-lint provenance header matched only after fallback normalization: `quote/src/ext.rs` vs expected `ext.rs`
-- **Proposed provenance header:** `// port-lint: source ext.rs` (current: `// port-lint: source quote/src/ext.rs`)
-- **Lint issues:** 1
 
 ## Success Criteria
 
@@ -117,6 +102,6 @@ do not treat them as the next implementation target by default.
 
 | Source | Target | Path |
 |--------|--------|------|
-| `format` | `quote.FormatIdent` | `format` |
-| `lib` | `quote.Quote` | `lib` |
+| `quote.format` | `quote.FormatIdent` | `quote/src/format` |
+| `quote.lib` | `quote.Quote` | `quote/src/lib` |
 
