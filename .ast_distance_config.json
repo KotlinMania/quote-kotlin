@@ -17,6 +17,10 @@
   },
   "reexport_modules": [
     "lib",
-    "format"
+    "lib.rs",
+    "quote/src/lib.rs",
+    "format",
+    "format.rs",
+    "quote/src/format.rs"
   ]
 }
