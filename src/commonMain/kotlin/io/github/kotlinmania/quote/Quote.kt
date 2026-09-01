@@ -95,7 +95,7 @@ private class QuoteParser(
         while (pos < template.length) {
             val ch = template[pos]
 
-            // Skip whitespace — token streams don't store whitespace
+            // Skip whitespace -- token streams do not store whitespace
             if (ch.isWhitespace()) {
                 pos++
                 continue
@@ -231,8 +231,8 @@ private class QuoteParser(
     }
 
     private fun emitRepetition(out: TokenStream) {
-        // We're at '(' — find the matching ')'
-        pos++ // skip '('
+        // At opening parenthesis -- find matching closing parenthesis
+        pos++ // skip opening parenthesis
         val bodyStart = pos
         var depth = 1
         while (pos < template.length && depth > 0) {
@@ -243,7 +243,7 @@ private class QuoteParser(
             if (depth > 0) pos++
         }
         val bodyEnd = pos
-        pos++ // skip ')'
+        pos++ // skip closing parenthesis
 
         // Check for separator and *
         var separator: Char? = null
@@ -502,13 +502,13 @@ private class QuoteParser(
     }
 
     private fun emitRawStringLiteral(out: TokenStream) {
-        pos++ // skip 'r'
+        pos++ // skip raw string prefix
         val start = pos
-        pos++ // skip opening "
+        pos++ // skip opening quote
         while (pos < template.length && template[pos] != '"') {
             pos++
         }
-        pos++ // skip closing "
+        pos++ // skip closing quote
         val text = template.substring(start, pos)
         val lit = Literal.string(text.removeSurrounding("\""))
         out.append(TokenTree.Literal(lit))
@@ -553,7 +553,7 @@ private class QuoteParser(
     // -- Raw identifier -----------------------------------------------------
 
     private fun emitRawIdent(out: TokenStream) {
-        // Skip 'r#'
+        // Skip raw prefix
         pos += 2
         val name = readIdentName()
         if (name.isNotEmpty()) {
@@ -570,7 +570,7 @@ private class QuoteParser(
         out.append(TokenTree.Punct(apostrophe))
         pos++ // skip apostrophe
 
-        // Check for raw token: 'r#name
+        // Check for raw identifier after apostrophe
         if (pos + 1 < template.length &&
             template[pos] == 'r' &&
             pos + 1 < template.length &&
