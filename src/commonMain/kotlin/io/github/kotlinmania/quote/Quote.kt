@@ -1,4 +1,4 @@
-// port-lint: source quote/src/lib.rs
+// port-lint: source lib.rs
 package io.github.kotlinmania.quote
 
 import io.github.kotlinmania.procmacro2.Delimiter
