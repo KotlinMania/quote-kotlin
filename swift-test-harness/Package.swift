@@ -1,6 +1,5 @@
 // swift-tools-version: 6.0
 import PackageDescription
-
 let package = Package(
     name: "SwiftTestHarness",
     platforms: [
@@ -15,20 +14,10 @@ let package = Package(
             dependencies: [
                 .product(name: "QuoteLibrary", package: "Quote")
             ],
-            swiftSettings: [
-                .unsafeFlags([
-                    "-F", "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
-                ]),
-            ],
             linkerSettings: [
                 .unsafeFlags([
                     "-L", "../build/swift-test",
                     "-lQuote",
-                    "-F", "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
-                    "-Xlinker", "-rpath",
-                    "-Xlinker", "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
-                    "-Xlinker", "-rpath",
-                    "-Xlinker", "/Library/Developer/CommandLineTools/Library/Developer/usr/lib",
                 ]),
             ]
         ),
