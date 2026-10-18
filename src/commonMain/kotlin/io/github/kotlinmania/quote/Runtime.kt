@@ -11,10 +11,6 @@ import io.github.kotlinmania.procmacro2.Span
 import io.github.kotlinmania.procmacro2.TokenStream
 import io.github.kotlinmania.procmacro2.TokenTree
 
-public typealias Delimiter = io.github.kotlinmania.procmacro2.Delimiter
-public typealias Span = io.github.kotlinmania.procmacro2.Span
-public typealias TokenStream = io.github.kotlinmania.procmacro2.TokenStream
-
 public typealias Output = Any
 public typealias Iter = Any
 public typealias Item = Any
