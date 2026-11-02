@@ -1,0 +1,641 @@
+package io.github.kotlinmania.quote
+
+import io.github.kotlinmania.procmacro2.Delimiter
+import io.github.kotlinmania.procmacro2.Group
+import io.github.kotlinmania.procmacro2.Ident
+import io.github.kotlinmania.procmacro2.Literal
+import io.github.kotlinmania.procmacro2.Punct
+import io.github.kotlinmania.procmacro2.Spacing
+import io.github.kotlinmania.procmacro2.Span
+import io.github.kotlinmania.procmacro2.TokenStream
+import io.github.kotlinmania.procmacro2.TokenTree
+
+/**
+ * Quasi-quote a token stream from a string template with interpolation.
+ *
+ * This is the Kotlin analogue of the `quote!` macro. The template
+ * string contains source code. Interpolation is done with the
+ * `` `#` `` marker followed by a variable name, which must be present in the
+ * [interpolations] map. Repetition is done with `` `#`(...)* `` or
+ * `` `#`(...),* `` syntax, where the separator is the character before `*`.
+ *
+ * Every interpolated variable must be present in [interpolations]. A `null`
+ * value emits no tokens, matching an absent optional interpolation.
+ *
+ * Tokens that originate within the quote invocation are spanned with
+ * [Span.callSite].
+ *
+ * Example:
+ * ```
+ * val name = Ident.new("MyStruct", Span.callSite())
+ * val tokens = quote("struct #name { }", mapOf("name" to name))
+ * // produces: struct MyStruct { }
+ * ```
+ */
+public fun quote(
+    template: String,
+    interpolations: Map<String, *> = emptyMap<String, Any?>(),
+): TokenStream {
+    val out = TokenStream.new()
+    val parser = QuoteParser(template, interpolations)
+    parser.emitInto(out)
+    return out
+}
+
+/**
+ * Quasi-quote a token stream from a string template with interpolation,
+ * using a spanned variant for hygienic macros.
+ *
+ * This is the Kotlin analogue of the `quoteSpanned` macro. All tokens
+ * originating within the quote invocation (i.e. not from interpolated
+ * values) are spanned with [span] instead of [Span.callSite].
+ */
+public fun quoteSpanned(
+    span: Span,
+    template: String,
+    interpolations: Map<String, *> = emptyMap<String, Any?>(),
+): TokenStream {
+    val out = TokenStream.new()
+    val parser = QuoteParser(template, interpolations, span)
+    parser.emitInto(out)
+    return out
+}
+
+/**
+ * Convenience overload for a single interpolation pair.
+ */
+public fun quote(template: String, vararg pairs: Pair<String, *>): TokenStream = quote(template, mapOf(*pairs))
+
+/**
+ * Convenience overload for quoteSpanned with pairs.
+ */
+public fun quoteSpanned(
+    span: Span,
+    template: String,
+    vararg pairs: Pair<String, *>,
+): TokenStream = quoteSpanned(span, template, mapOf(*pairs))
+
+// ---------------------------------------------------------------------------
+// Parser — converts the template string into a TokenStream
+// ---------------------------------------------------------------------------
+
+private class QuoteParser(
+    private val template: String,
+    private val interpolations: Map<String, *>,
+    private val span: Span = Span.callSite(),
+) {
+    private var pos = 0
+
+    fun emitInto(out: TokenStream) {
+        while (pos < template.length) {
+            val ch = template[pos]
+
+            // Skip whitespace -- token streams do not store whitespace
+            if (ch.isWhitespace()) {
+                pos++
+                continue
+            }
+
+            if (ch == '/' &&
+                pos + 1 < template.length &&
+                (template[pos + 1] == '/' || template[pos + 1] == '*')
+            ) {
+                emitComment(out)
+                continue
+            }
+
+            // Interpolation marker: `#`
+            if (isInterpolationMarker()) {
+                emitInterpolation(out)
+                continue
+            }
+
+            // Group delimiters: (), [], {}
+            if (ch == '(' || ch == '[' || ch == '{') {
+                emitGroup(out)
+                continue
+            }
+
+            // Quoted token
+            if (ch == '\'' && pos + 1 < template.length && isIdentStart(template[pos + 1])) {
+                emitQuotedIdent(out)
+                continue
+            }
+
+            // Punctuation
+            if (isPunct(ch)) {
+                emitPunct(out)
+                continue
+            }
+
+            // String literal
+            if (ch == '"') {
+                emitStringLiteral(out)
+                continue
+            }
+
+            // Raw string literal
+            if (ch == 'r' && pos + 1 < template.length && template[pos + 1] == '"') {
+                emitRawStringLiteral(out)
+                continue
+            }
+
+            // Raw identifier: r#ident
+            if (ch == 'r' &&
+                pos + 1 < template.length &&
+                template[pos + 1] == '#' &&
+                pos + 2 < template.length &&
+                isIdentStart(template[pos + 2])
+            ) {
+                emitRawIdent(out)
+                continue
+            }
+
+            // Number literal
+            if (ch.isDigit() || (ch == '-' && pos + 1 < template.length && template[pos + 1].isDigit())) {
+                emitNumberLiteral(out)
+                continue
+            }
+
+            // Identifier
+            if (isIdentStart(ch)) {
+                emitIdent(out)
+                continue
+            }
+
+            // Unknown character — skip it
+            pos++
+        }
+    }
+
+    // -- Interpolation ------------------------------------------------------
+
+    private fun isInterpolationMarker(): Boolean {
+        // Check for `#` (backtick-hash-backtick) or bare `#` if followed by `(` or an ident in interpolations
+        if (pos + 2 < template.length &&
+            template[pos] == '`' &&
+            template[pos + 1] == '#' &&
+            template[pos + 2] == '`'
+        ) {
+            return true
+        }
+        if (template[pos] == '#') {
+            if (pos + 1 < template.length && template[pos + 1] == '(') {
+                return true
+            }
+            if (pos + 1 < template.length && isIdentStart(template[pos + 1])) {
+                val nextPos = pos + 1
+                var end = nextPos
+                while (end < template.length && isIdentPart(template[end])) end++
+                val ident = template.substring(nextPos, end)
+                if (interpolations.containsKey(ident)) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    private fun emitInterpolation(out: TokenStream) {
+        if (template[pos] == '`') {
+            // Skip the `#` marker (3 chars: backtick, hash, backtick)
+            pos += 3
+        } else {
+            // Skip bare `#`
+            pos += 1
+        }
+
+        // Check for repetition: `#`(...) or #(...)
+        if (pos < template.length && template[pos] == '(') {
+            emitRepetition(out)
+            return
+        }
+
+        // Read the variable name
+        val name = readIdentName()
+        if (name.isEmpty()) {
+            // No name after `#` — emit # as punct
+            out.append(TokenTree.Punct(Punct('#', Spacing.Alone, Span.callSite())))
+            return
+        }
+
+        require(interpolations.containsKey(name)) {
+            "missing quote interpolation: $name"
+        }
+        emitValue(out, interpolations[name])
+    }
+
+    private fun emitRepetition(out: TokenStream) {
+        // At opening parenthesis -- find matching closing parenthesis
+        pos++ // skip opening parenthesis
+        val bodyStart = pos
+        var depth = 1
+        while (pos < template.length && depth > 0) {
+            when (template[pos]) {
+                '(' -> depth++
+                ')' -> depth--
+            }
+            if (depth > 0) pos++
+        }
+        val bodyEnd = pos
+        pos++ // skip closing parenthesis
+
+        // Check for separator and *
+        var separator: Char? = null
+        if (pos < template.length && template[pos] == '*') {
+            pos++ // skip *
+        } else if (pos + 1 < template.length && template[pos] != '*' && template[pos + 1] == '*') {
+            separator = template[pos]
+            pos += 2 // skip separator and *
+        }
+
+        // Collect all interpolation variable names in the body
+        val varNames = collectVarNames(template.substring(bodyStart, bodyEnd))
+
+        // Find all iterable interpolation variables — they iterate in lockstep
+        val iterVars = varNames.filter { isRepetitionIterable(interpolations[it]) }
+
+        if (iterVars.isNotEmpty()) {
+            // Get the iterables for all iterVars — they must be the same length
+            val iterables = iterVars.map { interpolations[it] as Iterable<*> }
+            val bodyTemplate = template.substring(bodyStart, bodyEnd)
+
+            // Convert to lists so we can index
+            val iterLists = iterables.map { it.toList() }
+            val len = iterLists.firstOrNull()?.size ?: 0
+
+            var first = true
+            for (i in 0 until len) {
+                if (!first && separator != null) {
+                    out.append(TokenTree.Punct(Punct(separator, Spacing.Alone, Span.callSite())))
+                }
+                first = false
+                // Create a sub-parser with each iterVar bound to its i-th item
+                val itemInterpolations = interpolations.toMutableMap()
+                for ((idx, iterVar) in iterVars.withIndex()) {
+                    itemInterpolations[iterVar] = iterLists[idx][i]
+                }
+                val subParser = QuoteParser(bodyTemplate, itemInterpolations, span)
+                subParser.emitInto(out)
+            }
+        }
+        // If no iterable variable, emit the body once (non-repeating)
+    }
+
+    private fun isRepetitionIterable(value: Any?): Boolean =
+        value is Iterable<*> && value !is ToTokens && value !is TokenStream
+
+    private fun collectVarNames(body: String): List<String> {
+        val names = mutableListOf<String>()
+        var i = 0
+        while (i < body.length) {
+            if (i + 2 < body.length &&
+                body[i] == '`' &&
+                body[i + 1] == '#' &&
+                body[i + 2] == '`'
+            ) {
+                i += 3
+                val name = StringBuilder()
+                while (i < body.length && isIdentPart(body[i])) {
+                    name.append(body[i])
+                    i++
+                }
+                if (name.isNotEmpty()) {
+                    names.add(name.toString())
+                }
+            } else if (body[i] == '#' && i + 1 < body.length && isIdentStart(body[i + 1])) {
+                val start = i + 1
+                var end = start
+                while (end < body.length && isIdentPart(body[end])) end++
+                val ident = body.substring(start, end)
+                if (interpolations.containsKey(ident)) {
+                    names.add(ident)
+                    i = end
+                } else {
+                    i++
+                }
+            } else {
+                i++
+            }
+        }
+        return names
+    }
+
+    // -- Value emission -----------------------------------------------------
+
+    private fun emitValue(out: TokenStream, value: Any?) {
+        when (value) {
+            null -> Unit
+            is ToTokens -> value.toTokens(out)
+            is Ident -> value.toTokens(out)
+            is TokenStream -> value.toTokens(out)
+            is TokenTree -> value.toTokens(out)
+            is Group -> value.toTokens(out)
+            is Punct -> value.toTokens(out)
+            is Literal -> value.toTokens(out)
+            is String -> value.toTokens(out)
+            is Long -> value.toTokens(out)
+            is Number -> {
+                val literal = Literal.fromString(value.toString()).getOrThrow()
+                literal.setSpan(span)
+                literal.toTokens(out)
+            }
+            is Boolean -> value.toTokens(out)
+            is UByte -> value.toTokens(out)
+            is UShort -> value.toTokens(out)
+            is UInt -> value.toTokens(out)
+            is ULong -> value.toTokens(out)
+            is Char -> value.toCharTokens(out)
+            is Iterable<*> -> {
+                for (item in value) {
+                    emitValue(out, item)
+                }
+            }
+            else -> error("Unsupported quote interpolation value")
+        }
+    }
+
+    private fun emitComment(out: TokenStream) {
+        val lineComment = template[pos + 1] == '/'
+        if (lineComment) {
+            val outerDoc = template.startsWith("///", pos) && !template.startsWith("////", pos)
+            val innerDoc = template.startsWith("//!", pos)
+            val contentStart = if (outerDoc || innerDoc) pos + 3 else pos + 2
+            val end = template.indexOf('\n', pos).let { if (it == -1) template.length else it }
+            if (outerDoc || innerDoc) {
+                emitDocAttribute(out, template.substring(contentStart, end), innerDoc)
+            }
+            pos = end
+            return
+        }
+
+        val outerDoc = template.startsWith("/**", pos) && !template.startsWith("/***", pos)
+        val innerDoc = template.startsWith("/*!", pos)
+        val contentStart = if (outerDoc || innerDoc) pos + 3 else pos + 2
+        var cursor = pos + 2
+        var depth = 1
+        var contentEnd = cursor
+        while (cursor < template.length && depth > 0) {
+            when {
+                template.startsWith("/*", cursor) -> {
+                    depth++
+                    cursor += 2
+                }
+                template.startsWith("*/", cursor) -> {
+                    depth--
+                    contentEnd = cursor
+                    cursor += 2
+                }
+                else -> cursor++
+            }
+        }
+        if (outerDoc || innerDoc) {
+            emitDocAttribute(out, template.substring(contentStart, contentEnd), innerDoc)
+        }
+        pos = cursor
+    }
+
+    private fun emitDocAttribute(out: TokenStream, content: String, inner: Boolean) {
+        out.append(TokenTree.Punct(Punct('#', Spacing.Alone, span)))
+        if (inner) {
+            out.append(TokenTree.Punct(Punct('!', Spacing.Alone, span)))
+        }
+
+        val attribute = TokenStream.new()
+        attribute.append(TokenTree.Ident(Ident.new("doc", span)))
+        attribute.append(TokenTree.Punct(Punct('=', Spacing.Alone, span)))
+        val literal = Literal.fromString(rawStringLiteral(content)).getOrThrow()
+        literal.setSpan(span)
+        attribute.append(TokenTree.Literal(literal))
+        out.append(TokenTree.Group(Group(Delimiter.Bracket, attribute)))
+    }
+
+    private fun rawStringLiteral(content: String): String {
+        var hashes = ""
+        while (content.contains("\"$hashes")) {
+            hashes += "#"
+        }
+        return "r$hashes\"$content\"$hashes"
+    }
+
+    // -- Punctuation --------------------------------------------------------
+
+    private fun isPunct(ch: Char): Boolean = ch in "!#%&'*+,-./:;<=>?@^|~$"
+
+    private fun emitPunct(out: TokenStream) {
+        val first = template[pos]
+        pos++
+
+        // Check for multi-char operators
+        if (pos < template.length) {
+            val second = template[pos]
+            val two = "$first$second"
+            when (two) {
+                "::", "->", "=>", "==", "!=", "<=", ">=", "&&", "||",
+                "<<", ">>", "+=", "-=", "*=", "/=", "&=", "|=", "^=",
+                "%=", "..", "<-",
+                -> {
+                    // Check for three-char operators
+                    if (pos + 1 < template.length) {
+                        val third = template[pos + 1]
+                        val three = "$two$third"
+                        when (three) {
+                            "...", "<<=", ">>=" -> {
+                                emitPunct3(out, first, second, third)
+                                pos += 2
+                                return
+                            }
+                        }
+                    }
+                    emitPunct2(out, first, second)
+                    pos++
+                    return
+                }
+            }
+        }
+
+        emitPunct1(out, first)
+    }
+
+    private fun emitPunct1(out: TokenStream, ch: Char) {
+        val punct = Punct(ch, Spacing.Alone, span)
+        out.append(TokenTree.Punct(punct))
+    }
+
+    private fun emitPunct2(out: TokenStream, ch1: Char, ch2: Char) {
+        val p1 = Punct(ch1, Spacing.Joint, span)
+        out.append(TokenTree.Punct(p1))
+        val p2 = Punct(ch2, Spacing.Alone, span)
+        out.append(TokenTree.Punct(p2))
+    }
+
+    private fun emitPunct3(out: TokenStream, ch1: Char, ch2: Char, ch3: Char) {
+        val p1 = Punct(ch1, Spacing.Joint, span)
+        out.append(TokenTree.Punct(p1))
+        val p2 = Punct(ch2, Spacing.Joint, span)
+        out.append(TokenTree.Punct(p2))
+        val p3 = Punct(ch3, Spacing.Alone, span)
+        out.append(TokenTree.Punct(p3))
+    }
+
+    // -- String literal -----------------------------------------------------
+
+    private fun emitStringLiteral(out: TokenStream) {
+        val start = pos
+        pos++ // skip opening "
+        while (pos < template.length && template[pos] != '"') {
+            if (template[pos] == '\\' && pos + 1 < template.length) {
+                pos += 2 // skip escape sequence
+            } else {
+                pos++
+            }
+        }
+        pos++ // skip closing "
+        val text = template.substring(start, pos)
+        val lit = Literal.string(text.removeSurrounding("\""))
+        out.append(TokenTree.Literal(lit))
+    }
+
+    private fun emitRawStringLiteral(out: TokenStream) {
+        pos++ // skip raw string prefix
+        val start = pos
+        pos++ // skip opening quote
+        while (pos < template.length && template[pos] != '"') {
+            pos++
+        }
+        pos++ // skip closing quote
+        val text = template.substring(start, pos)
+        val lit = Literal.string(text.removeSurrounding("\""))
+        out.append(TokenTree.Literal(lit))
+    }
+
+    // -- Group delimiters ---------------------------------------------------
+
+    private fun emitGroup(out: TokenStream) {
+        val open = template[pos]
+        val (delimiter, close) =
+            when (open) {
+                '(' -> Delimiter.Parenthesis to ')'
+                '[' -> Delimiter.Bracket to ']'
+                '{' -> Delimiter.Brace to '}'
+                else -> return
+            }
+        pos++ // skip opening delimiter
+
+        // Collect the inner content until the matching closing delimiter
+        val innerStart = pos
+        var depth = 1
+        while (pos < template.length && depth > 0) {
+            when (template[pos]) {
+                open -> depth++
+                close -> depth--
+            }
+            if (depth > 0) pos++
+        }
+        val innerEnd = pos
+        pos++ // skip closing delimiter
+
+        // Parse the inner content as a sub-template
+        val innerStream = TokenStream.new()
+        val innerTemplate = template.substring(innerStart, innerEnd)
+        val subParser = QuoteParser(innerTemplate, interpolations, span)
+        subParser.emitInto(innerStream)
+
+        val group = Group(delimiter, innerStream)
+        out.append(TokenTree.Group(group))
+    }
+
+    // -- Raw identifier -----------------------------------------------------
+
+    private fun emitRawIdent(out: TokenStream) {
+        // Skip raw prefix
+        pos += 2
+        val name = readIdentName()
+        if (name.isNotEmpty()) {
+            val ident = Ident.newRaw(name, span)
+            out.append(TokenTree.Ident(ident))
+        }
+    }
+
+    // -- Quoted tokens -----------------------------------------------------
+
+    private fun emitQuotedIdent(out: TokenStream) {
+        // pos is at the apostrophe
+        val apostrophe = Punct('\'', Spacing.Joint, span)
+        out.append(TokenTree.Punct(apostrophe))
+        pos++ // skip apostrophe
+
+        // Check for raw identifier after apostrophe
+        if (pos + 1 < template.length &&
+            template[pos] == 'r' &&
+            pos + 1 < template.length &&
+            template[pos + 1] == '#' &&
+            pos + 2 < template.length &&
+            isIdentStart(template[pos + 2])
+        ) {
+            pos++ // skip r
+            pos++ // skip #
+            val name = readIdentName()
+            if (name.isNotEmpty()) {
+                val ident = Ident.newRaw(name, span)
+                out.append(TokenTree.Ident(ident))
+            }
+            return
+        }
+
+        val name = readIdentName()
+        if (name.isNotEmpty()) {
+            val ident = mkIdent(name, span)
+            out.append(TokenTree.Ident(ident))
+        }
+    }
+
+    // -- Number literal -----------------------------------------------------
+
+    private fun emitNumberLiteral(out: TokenStream) {
+        val start = pos
+        val radixPrefix = pos + 1 < template.length && template[pos] == '0' && template[pos + 1] in "boxBOX"
+        if (radixPrefix) {
+            pos += 2
+            while (pos < template.length && (template[pos].isLetterOrDigit() || template[pos] == '_')) pos++
+        } else {
+            while (pos < template.length && (template[pos].isDigit() || template[pos] == '_')) pos++
+            if (pos < template.length && template[pos] == '.' && template.getOrNull(pos + 1) != '.') {
+                pos++
+                while (pos < template.length && (template[pos].isDigit() || template[pos] == '_')) pos++
+            }
+            if (pos < template.length && template[pos] in "eE") {
+                pos++
+                if (pos < template.length && template[pos] in "+-") pos++
+                while (pos < template.length && (template[pos].isDigit() || template[pos] == '_')) pos++
+            }
+            while (pos < template.length && isIdentPart(template[pos])) pos++
+        }
+        val text = template.substring(start, pos)
+        val literal = Literal.fromString(text).getOrThrow()
+        literal.setSpan(span)
+        out.append(TokenTree.Literal(literal))
+    }
+
+    // -- Identifier ---------------------------------------------------------
+
+    private fun emitIdent(out: TokenStream) {
+        val name = readIdentName()
+        if (name.isNotEmpty()) {
+            val ident = mkIdent(name, span)
+            out.append(TokenTree.Ident(ident))
+        }
+    }
+
+    private fun readIdentName(): String {
+        val start = pos
+        while (pos < template.length && isIdentPart(template[pos])) {
+            pos++
+        }
+        return template.substring(start, pos)
+    }
+
+    private fun isIdentStart(ch: Char): Boolean = ch.isLetter() || ch == '_'
+
+    private fun isIdentPart(ch: Char): Boolean = ch.isLetterOrDigit() || ch == '_'
+}
