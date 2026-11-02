@@ -16,6 +16,12 @@ public typealias Iter = Any
 public typealias Item = Any
 public typealias Target = Any
 
+private object RuntimeReexports {
+    typealias Delimiter = io.github.kotlinmania.procmacro2.Delimiter
+    typealias Span = io.github.kotlinmania.procmacro2.Span
+    typealias TokenStream = io.github.kotlinmania.procmacro2.TokenStream
+}
+
 public class HasIterator<T>(
     public val hasIterator: Boolean,
 ) {
@@ -33,6 +39,8 @@ public interface RepIteratorExt {
 }
 
 public interface RepToTokensExt {
+    public fun <T : ToTokens> next(value: T): T? = value
+
     public fun <T : ToTokens> quoteIntoIter(value: T): Pair<T, HasIterator<Boolean>> =
         Pair(value, HasIterator(false))
 }
@@ -78,10 +86,8 @@ public fun <T> getSpan(span: T): GetSpan<T> =
 /**
  * Runtime support functions for the quote system.
  *
- * These are the Kotlin analogues of the functions in
- * `quote::__private` (runtime.rs). They are used by [quote] and
- * [quoteSpanned] internally, and may be used directly by code that
- * needs fine-grained control over token emission.
+ * These functions are used by [quote] and [quoteSpanned] internally, and may
+ * be used directly by code that needs fine-grained control over token emission.
  */
 
 /**
@@ -623,3 +629,123 @@ public class RepInterp<T>(
  * Return the wrapped value, mirroring the single-element iterator pattern.
  */
 public fun <T> RepInterp<T>.next(): T = value
+
+// Adapts from IdentFragment to formatted output for formatIdent, and exposes
+// span information and integer radix formatting (octal, lower hex, upper hex,
+// and binary) from supported fragment values.
+public class IdentFragmentAdapter(
+    private val value: Any?,
+) : IdentFragment {
+    private val fragmentText: String
+    private val fragmentSpan: Span?
+
+    init {
+        when (value) {
+            is IdentFragment -> {
+                fragmentText = value.formatIdentFragment()
+                fragmentSpan = value.span()
+            }
+            is Ident -> {
+                fragmentText = value.toString().removePrefix("r#")
+                fragmentSpan = value.span()
+            }
+            is Boolean -> {
+                fragmentText = value.toString()
+                fragmentSpan = null
+            }
+            is CharSequence -> {
+                fragmentText = value.toString()
+                fragmentSpan = null
+            }
+            is Char -> {
+                fragmentText = value.toString()
+                fragmentSpan = null
+            }
+            is UByte -> {
+                fragmentText = value.toString()
+                fragmentSpan = null
+            }
+            is UShort -> {
+                fragmentText = value.toString()
+                fragmentSpan = null
+            }
+            is UInt -> {
+                fragmentText = value.toString()
+                fragmentSpan = null
+            }
+            is ULong -> {
+                fragmentText = value.toString()
+                fragmentSpan = null
+            }
+            is Byte -> {
+                fragmentText = value.toString()
+                fragmentSpan = null
+            }
+            is Short -> {
+                fragmentText = value.toString()
+                fragmentSpan = null
+            }
+            is Int -> {
+                fragmentText = value.toString()
+                fragmentSpan = null
+            }
+            is Long -> {
+                fragmentText = value.toString()
+                fragmentSpan = null
+            }
+            else -> throw IllegalArgumentException(
+                "Unsupported identifier fragment value: $value",
+            )
+        }
+    }
+
+    override fun formatIdentFragment(): String = fragmentText
+
+    override fun span(): Span? = fragmentSpan
+
+    override fun fmt(formatter: Appendable): Appendable =
+        formatter.append(fragmentText)
+
+    public fun fmtOctal(formatter: Appendable, alternate: Boolean = false): Appendable {
+        if (alternate) {
+            formatter.append("0o")
+        }
+        return formatter.append(formatRadix(8))
+    }
+
+    public fun fmtLowerHex(formatter: Appendable, alternate: Boolean = false): Appendable {
+        if (alternate) {
+            formatter.append("0x")
+        }
+        return formatter.append(formatRadix(16))
+    }
+
+    public fun fmtUpperHex(formatter: Appendable, alternate: Boolean = false): Appendable {
+        if (alternate) {
+            formatter.append("0x")
+        }
+        return formatter.append(formatRadix(16).uppercase())
+    }
+
+    public fun fmtBinary(formatter: Appendable, alternate: Boolean = false): Appendable {
+        if (alternate) {
+            formatter.append("0b")
+        }
+        return formatter.append(formatRadix(2))
+    }
+
+    private fun formatRadix(radix: Int): String =
+        when (val v = value) {
+            is UByte -> v.toString(radix)
+            is UShort -> v.toString(radix)
+            is UInt -> v.toString(radix)
+            is ULong -> v.toString(radix)
+            is Byte -> v.toUByte().toString(radix)
+            is Short -> v.toUShort().toString(radix)
+            is Int -> v.toUInt().toString(radix)
+            is Long -> v.toULong().toString(radix)
+            else -> throw IllegalArgumentException(
+                "Radix formatting is not supported for identifier fragment value: $v",
+            )
+        }
+}

@@ -11,61 +11,79 @@ import io.github.kotlinmania.procmacro2.TokenTree
 internal interface Sealed
 
 /**
- * TokenStream extension trait with methods for appending tokens.
+ * [TokenStream] extension interface with methods for appending tokens.
  *
- * This trait is sealed and cannot be implemented outside of the `quote`
+ * This interface is sealed and cannot be implemented outside of the `quote`
  * package.
  */
 public interface TokenStreamExt {
     /**
-     * For use by `ToTokens` implementations.
+     * For use by [ToTokens] implementations.
      *
      * Appends the token specified to this list of tokens.
      */
     public fun append(token: TokenTree)
 
     /**
-     * For use by `ToTokens` implementations.
+     * For use by [ToTokens] implementations.
+     *
+     * ```kotlin
+     * class X : ToTokens {
+     *     override fun toTokens(tokens: TokenStream) {
+     *         tokens.append(Ident.new("true", Span.callSite()))
+     *         tokens.append(Ident.new("false", Span.callSite()))
+     *     }
+     * }
+     *
+     * val tokens = quote("#x", "x" to X())
+     * check(tokens.toString() == "true false")
+     * ```
      */
     public fun <T : ToTokens> appendAll(iter: Iterable<T>)
 
     /**
-     * For use by `ToTokens` implementations.
+     * For use by [ToTokens] implementations.
      *
-     * Appends all of the items in the iterator `I`, separated by the tokens
-     * `U`.
+     * Appends all of the items in the iterable [iter], separated by the tokens
+     * [op].
      */
     public fun <T : ToTokens, U : ToTokens> appendSeparated(iter: Iterable<T>, op: U)
 
     /**
-     * For use by `ToTokens` implementations.
+     * For use by [ToTokens] implementations.
      *
-     * Appends all tokens in the iterator `I`, appending `U` after each
-     * element, including after the last element of the iterator.
+     * Appends all tokens in the iterable [iter], appending [term] after each
+     * element, including after the last element of the iterable.
      */
     public fun <T : ToTokens, U : ToTokens> appendTerminated(iter: Iterable<T>, term: U)
 }
 
+/** Appends [token] onto this [TokenStream]. */
 public fun TokenStream.append(token: TokenTree) {
     extendTokenTrees(listOf(token))
 }
 
+/** Appends a [Group] token onto this [TokenStream]. */
 public fun TokenStream.append(token: Group) {
     append(TokenTree.Group(token))
 }
 
+/** Appends an [Ident] token onto this [TokenStream]. */
 public fun TokenStream.append(token: Ident) {
     append(TokenTree.Ident(token))
 }
 
+/** Appends a [Punct] token onto this [TokenStream]. */
 public fun TokenStream.append(token: Punct) {
     append(TokenTree.Punct(token))
 }
 
+/** Appends a [Literal] token onto this [TokenStream]. */
 public fun TokenStream.append(token: Literal) {
     append(TokenTree.Literal(token))
 }
 
+/** Appends every [ToTokens] element from [iter] onto this [TokenStream]. */
 public fun <T : ToTokens> TokenStream.appendAll(iter: Iterable<T>) {
     doAppendAll(this, iter.iterator())
 }
@@ -76,6 +94,14 @@ internal fun <T : ToTokens> doAppendAll(stream: TokenStream, iter: Iterator<T>) 
     }
 }
 
+/** Appends every [TokenTree] from [iter] onto this [TokenStream]. */
+public fun TokenStream.appendAll(iter: TokenStream) {
+    for (token in iter) {
+        token.toTokens(this)
+    }
+}
+
+/** Appends every element of [iter] onto this [TokenStream], separated by [op]. */
 public fun <T : ToTokens, U : ToTokens> TokenStream.appendSeparated(iter: Iterable<T>, op: U) {
     doAppendSeparated(this, iter.iterator(), op)
 }
@@ -95,6 +121,7 @@ internal fun <T : ToTokens, U : ToTokens> doAppendSeparated(
     }
 }
 
+/** Appends every element of [iter] onto this [TokenStream], each followed by [term]. */
 public fun <T : ToTokens, U : ToTokens> TokenStream.appendTerminated(iter: Iterable<T>, term: U) {
     doAppendTerminated(this, iter.iterator(), term)
 }

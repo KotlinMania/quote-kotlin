@@ -4,8 +4,12 @@ package io.github.kotlinmania.quote
 import io.github.kotlinmania.procmacro2.Delimiter
 import io.github.kotlinmania.procmacro2.Group
 import io.github.kotlinmania.procmacro2.Ident
+import io.github.kotlinmania.procmacro2.Literal
+import io.github.kotlinmania.procmacro2.Punct
+import io.github.kotlinmania.procmacro2.Spacing
 import io.github.kotlinmania.procmacro2.Span
 import io.github.kotlinmania.procmacro2.TokenStream
+import io.github.kotlinmania.procmacro2.TokenTree
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -424,10 +428,17 @@ class QuoteTest {
 
     @Test
     fun testNestedFancyRepetition() {
-        // Rust: let nested = vec![vec!['a', 'b', 'c'], vec!['x', 'y', 'z']];
         val nested = listOf(listOf('a', 'b', 'c'), listOf('x', 'y', 'z'))
-        val tokens = quote("`#`(`#`(`#`nested)*)*", mapOf("nested" to nested))
-        assertEquals("'a' 'b' 'c' 'x' 'y' 'z'", tokens.toString())
+        val tokens =
+            quote(
+                """
+                #(
+                    #(#nested)*
+                ),*
+                """,
+                mapOf("nested" to nested),
+            )
+        assertEquals("'a' 'b' 'c' , 'x' 'y' 'z'", tokens.toString())
     }
 
     @Test
@@ -514,35 +525,37 @@ class QuoteTest {
 
     @Test
     fun testAppendTokens() {
-        // Rust: let mut a = quote!(a); let b = quote!(b); a.append_all(b);
         val a = quote("a")
         val b = quote("b")
-        val wrapper =
-            object : ToTokens {
-                override fun toTokens(tokens: TokenStream) {
-                    b.toTokens(tokens)
-                }
-            }
-        a.appendAll(listOf(wrapper))
+        a.appendAll(b)
         assertEquals("a b", a.toString())
     }
 
     @Test
     fun testFormatIdentFull() {
-        // Rust: format_ident!("Aa"), format_ident!("Hello{x}", x=id0), etc.
-        // Kotlin formatIdent uses positional {} placeholders.
-        val id0 = formatIdent("Aa")
-        val id1 = formatIdent("Hello{}", id0)
-        val id2 = formatIdent("Hello{}", 5.toUInt())
-        val id3 = formatIdent("Hello{}_{}", id0, 10.toUInt())
-        val id4 = formatIdent("Aa")
+        val spanTokens = TokenStream.fromString("origin other").getOrThrow().toList()
+        val originSpan = spanTokens[0].span()
+        val overrideSpan = spanTokens[1].span()
+
+        val id0 = formatIdent(originSpan, "Aa")
+        val id1 = formatIdent("Hello{x}", "x" to id0)
+        val id2 = formatIdent("Hello{x}", "x" to 5.toULong())
+        val id3 = formatIdent("Hello{}_{x}", id0, "x" to 10.toULong())
+        val id4 = formatIdent("Aa", "span" to overrideSpan)
         val id5 = formatIdent("Hello{}", "World")
+        val id6 = formatIdent("Idx_{1}_{0:x}_{b:b}", 15.toUByte(), 7.toUShort(), "b" to 5.toUByte())
+
         assertEquals("Aa", id0.toString())
+        assertEquals(originSpan.byteRange(), id0.span().byteRange())
         assertEquals("HelloAa", id1.toString())
+        assertEquals(originSpan.byteRange(), id1.span().byteRange())
         assertEquals("Hello5", id2.toString())
         assertEquals("HelloAa_10", id3.toString())
+        assertEquals(originSpan.byteRange(), id3.span().byteRange())
         assertEquals("Aa", id4.toString())
+        assertEquals(overrideSpan.byteRange(), id4.span().byteRange())
         assertEquals("HelloWorld", id5.toString())
+        assertEquals("Idx_7_f_101", id6.toString())
     }
 
     @Test
@@ -619,16 +632,116 @@ class QuoteTest {
 
     @Test
     fun testTypeInferenceForSpan() {
-        // Rust: verifies that quote_spanned! works with Span, DelimSpan, and
-        // inferred span types. Kotlin's quoteSpanned accepts any Span, so we
-        // test with Span.callSite() and a DelimSpan derived from a Group.
         val span = Span.callSite()
         val tokens = quoteSpanned(span, "...")
-        assertTrue(tokens.toString().contains("."), "Expected dots in: $tokens")
+        assertEquals("...", tokens.toString())
 
         val group = Group(Delimiter.Parenthesis, TokenStream.new())
         val delimSpan = group.delimSpan()
-        val tokens2 = quoteSpanned(delimSpan.join(), "...")
-        assertTrue(tokens2.toString().contains("."), "Expected dots in: $tokens2")
+        val tokens2 = quoteSpanned(delimSpan, "...")
+        assertEquals("...", tokens2.toString())
+    }
+
+    @Test
+    fun testTemplateCharacterAndByteCharacterLiteralsVsLifetimes() {
+        val tokens = quote("'a' '\\n' '\\'' '\\x7f' '\\u{2764}' '0' b'x' b'\\n' 'static 'r#async '_")
+        val items = tokens.toList()
+        assertEquals(14, items.size, "Unexpected token trees: $items")
+        assertTrue(items[0] is TokenTree.Literal && items[0].toString() == "'a'")
+        assertTrue(items[1] is TokenTree.Literal && items[1].toString() == "'\\n'")
+        assertTrue(items[2] is TokenTree.Literal && items[2].toString() == "'\\''")
+        assertTrue(items[3] is TokenTree.Literal && items[3].toString() == "'\\x7f'")
+        assertTrue(items[4] is TokenTree.Literal && items[4].toString() == "'\\u{2764}'")
+        assertTrue(items[5] is TokenTree.Literal && items[5].toString() == "'0'")
+        assertTrue(items[6] is TokenTree.Literal && items[6].toString() == "b'x'")
+        assertTrue(items[7] is TokenTree.Literal && items[7].toString() == "b'\\n'")
+        assertEquals("'static 'r#async '_", quote("'static 'r#async '_").toString())
+    }
+
+    @Test
+    fun testTemplateStringRawByteAndCStringLiteralsPreserveEscapes() {
+        val tokens =
+            quote(
+                "\"a\\nb\\\"c\" r\"raw\\n\" r#\"raw \"quote\"\"# b\"bytes\\x00\" br#\"raw \"bytes\"\"# c\"cstr\\n\" cr#\"raw \"cstr\"\"#",
+            )
+        val items = tokens.toList()
+        assertEquals(7, items.size)
+        assertEquals("\"a\\nb\\\"c\"", items[0].toString())
+        assertEquals("r\"raw\\n\"", items[1].toString())
+        assertEquals("r#\"raw \"quote\"\"#", items[2].toString())
+        assertEquals("b\"bytes\\x00\"", items[3].toString())
+        assertEquals("br#\"raw \"bytes\"\"#", items[4].toString())
+        assertEquals("c\"cstr\\n\"", items[5].toString())
+        assertEquals("cr#\"raw \"cstr\"\"#", items[6].toString())
+    }
+
+    @Test
+    fun testDotDotEqAndThreeCharPunctuationSpacing() {
+        val tokens = quote("0..=10 a...b x<<=1 y>>=2")
+        assertEquals("0 ..= 10 a ... b x <<= 1 y >>= 2", tokens.toString())
+        val dotDotEq = quote("..=").toList()
+        assertEquals(3, dotDotEq.size)
+        assertEquals(Spacing.Joint, (dotDotEq[0] as TokenTree.Punct).value.spacing())
+        assertEquals(Spacing.Joint, (dotDotEq[1] as TokenTree.Punct).value.spacing())
+        assertEquals(Spacing.Alone, (dotDotEq[2] as TokenTree.Punct).value.spacing())
+    }
+
+    @Test
+    fun testDelimitersInsideStringsCommentsAndCharsDoNotCloseGroupOrRepetition() {
+        val grouped = quote("{ let s = \"}\"; let r = r#\"}\"#; let c = '}'; /* } */ }")
+        val top = grouped.toList()
+        assertEquals(1, top.size)
+        assertTrue(top[0] is TokenTree.Group)
+
+        val repeated = quote("#(f(\")\", #x))*", "x" to listOf(1, 2))
+        assertEquals("f (\")\" , 1) f (\")\" , 2)", repeated.toString())
+
+        val pathSep =
+            quote(
+                "#(#seg)::*",
+                "seg" to listOf(formatIdent("alpha"), formatIdent("beta"), formatIdent("gamma")),
+            )
+        assertEquals("alpha :: beta :: gamma", pathSep.toString())
+
+        val tupleIndex = quote("self.0.heap_size()")
+        assertEquals("self . 0 . heap_size ()", tupleIndex.toString())
+    }
+
+    @Test
+    fun testQuoteSpannedPropagatesToGroupsSeparatorsAndToTokensClones() {
+        val parsed = TokenStream.fromString("alpha beta").getOrThrow().toList()
+        val alphaSpan = parsed[0].span()
+        val betaSpan = parsed[1].span()
+
+        val spanned =
+            quoteSpanned(
+                alphaSpan,
+                "{ #(#items),* }",
+                "items" to listOf(Ident.new("x", betaSpan), Ident.new("y", betaSpan)),
+            )
+        val outerGroup = (spanned.toList().single() as TokenTree.Group).value
+        assertEquals(alphaSpan.byteRange(), outerGroup.span().byteRange())
+        val innerItems = outerGroup.stream().toList()
+        assertEquals(3, innerItems.size)
+        assertEquals(betaSpan.byteRange(), innerItems[0].span().byteRange())
+        assertEquals(alphaSpan.byteRange(), innerItems[1].span().byteRange())
+        assertEquals(betaSpan.byteRange(), innerItems[2].span().byteRange())
+
+        val punct = Punct('+', Spacing.Alone, alphaSpan)
+        val literal = Literal.i32Suffixed(7).also { it.setSpan(alphaSpan) }
+        val group = Group(Delimiter.Bracket, TokenStream.new()).also { it.setSpan(alphaSpan) }
+        val stream = TokenStream.new()
+        punct.toTokens(stream)
+        literal.toTokens(stream)
+        group.toTokens(stream)
+
+        punct.setSpan(betaSpan)
+        literal.setSpan(betaSpan)
+        group.setSpan(betaSpan)
+
+        val emitted = stream.toList()
+        assertEquals(alphaSpan.byteRange(), emitted[0].span().byteRange())
+        assertEquals(alphaSpan.byteRange(), emitted[1].span().byteRange())
+        assertEquals(alphaSpan.byteRange(), emitted[2].span().byteRange())
     }
 }

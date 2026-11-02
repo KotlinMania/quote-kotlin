@@ -28,5 +28,9 @@ class ExtTest {
         val semi = StreamWrapper(quote(";"))
         stream2.appendTerminated(listOf(id1, id2), semi)
         assertEquals("a ; b ;", stream2.toString())
+
+        val stream3 = quote("head")
+        stream3.appendAll(quote("tail1 tail2"))
+        assertEquals("head tail1 tail2", stream3.toString())
     }
 }
