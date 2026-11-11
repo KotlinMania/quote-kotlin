@@ -426,18 +426,18 @@ private class QuoteParser(
             is Literal -> value.toTokens(out)
             is String -> value.toTokens(out)
             is CharSequence -> value.toString().toTokens(out)
+            is Byte -> value.toTokens(out)
+            is Short -> value.toTokens(out)
+            is Int -> value.toTokens(out)
             is Long -> value.toTokens(out)
-            is Number -> {
-                val literal = Literal.fromString(value.toString()).getOrThrow()
-                literal.setSpan(span)
-                literal.toTokens(out)
-            }
+            is Float -> value.toTokens(out)
+            is Double -> value.toTokens(out)
             is Boolean -> value.toTokens(out)
             is UByte -> value.toTokens(out)
             is UShort -> value.toTokens(out)
             is UInt -> value.toTokens(out)
             is ULong -> value.toTokens(out)
-            is Char -> value.toCharTokens(out)
+            is Char -> value.toTokens(out)
             is ByteArray -> value.toTokens(out)
             is Iterable<*> -> {
                 for (item in value) {

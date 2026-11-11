@@ -11,17 +11,6 @@ import io.github.kotlinmania.procmacro2.Span
 import io.github.kotlinmania.procmacro2.TokenStream
 import io.github.kotlinmania.procmacro2.TokenTree
 
-public typealias Output = Any
-public typealias Iter = Any
-public typealias Item = Any
-public typealias Target = Any
-
-private object RuntimeReexports {
-    typealias Delimiter = io.github.kotlinmania.procmacro2.Delimiter
-    typealias Span = io.github.kotlinmania.procmacro2.Span
-    typealias TokenStream = io.github.kotlinmania.procmacro2.TokenStream
-}
-
 public class HasIterator<T>(
     public val hasIterator: Boolean,
 ) {
@@ -50,35 +39,27 @@ public interface RepAsIteratorExt {
         Pair(iterable.iterator(), HasIterator(true))
 }
 
-public class GetSpanBase<T>(
-    public val value: T,
+public class GetSpanBase<T> internal constructor(
+    internal val value: T,
 ) {
-    public fun __intoSpan(): Span =
-        when (val v = value) {
-            is Span -> v
-            is DelimSpan -> v.join()
-            is ToTokens -> v.__span()
-            else -> Span.callSite()
-        }
-
-    public fun deref(): T = value
+    public fun intoSpan(): T = error("internal error: entered unreachable code")
 }
 
-public class GetSpanInner<T>(
-    public val base: GetSpanBase<T>,
+public class GetSpanInner<T> internal constructor(
+    internal val base: GetSpanBase<T>,
 ) {
-    public fun __intoSpan(): Span = base.__intoSpan()
-
     public fun deref(): GetSpanBase<T> = base
 }
 
-public class GetSpan<T>(
-    public val inner: GetSpanInner<T>,
-) {
-    public fun __intoSpan(): Span = inner.__intoSpan()
+public fun GetSpanInner<DelimSpan>.intoSpan(): Span = base.value.join()
 
+public class GetSpan<T> internal constructor(
+    internal val inner: GetSpanInner<T>,
+) {
     public fun deref(): GetSpanInner<T> = inner
 }
+
+public fun GetSpan<Span>.intoSpan(): Span = inner.base.value
 
 public fun <T> getSpan(span: T): GetSpan<T> =
     GetSpan(GetSpanInner(GetSpanBase(span)))

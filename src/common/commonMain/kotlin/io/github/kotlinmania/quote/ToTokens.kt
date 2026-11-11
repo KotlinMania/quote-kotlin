@@ -144,14 +144,8 @@ public fun Double.toTokens(tokens: TokenStream) {
     tokens.append(Literal.f64Suffixed(this))
 }
 
-/**
- * Appends this [Char] as a character [Literal] to [tokens].
- *
- * Named distinctly from the numeric [toTokens] overloads because Kotlin [Char]
- * and [UShort] both export to Swift `UInt16`, so a uniform `Char.toTokens`
- * collides with [UShort.toTokens] in the Swift Export bridge.
- */
-public fun Char.toCharTokens(tokens: TokenStream) {
+/** Appends this [Char] as a character [Literal] to [tokens]. */
+public fun Char.toTokens(tokens: TokenStream) {
     tokens.append(Literal.character(this))
 }
 

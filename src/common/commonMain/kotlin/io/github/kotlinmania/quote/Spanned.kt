@@ -7,14 +7,14 @@ import io.github.kotlinmania.procmacro2.TokenStream
 
 // Not public API other than via the syn package. Use syn.Spanned.
 public interface Spanned {
-    public fun __span(): Span
+    public fun span(): Span
 }
 
-public fun Span.__span(): Span = this
+public fun Span.span(): Span = this
 
-public fun DelimSpan.__span(): Span = this.join()
+public fun DelimSpan.span(): Span = this.join()
 
-public fun ToTokens.__span(): Span = joinSpans(this.intoTokenStream())
+public fun <T : ToTokens> T.span(): Span = joinSpans(this.intoTokenStream())
 
 private fun joinSpans(tokens: TokenStream): Span {
     val iter = tokens.asSequence().map { tt -> tt.span() }.iterator()
@@ -25,8 +25,4 @@ private fun joinSpans(tokens: TokenStream): Span {
         .fold<Span, Span?>(null) { _, next -> next }
         ?.let { last -> first.join(last) }
         ?: first
-}
-
-private object SpannedPrivate {
-    interface Sealed
 }
