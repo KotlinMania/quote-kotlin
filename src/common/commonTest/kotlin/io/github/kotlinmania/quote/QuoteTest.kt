@@ -354,9 +354,10 @@ class QuoteTest {
                 #ii8 #ii16 #ii32 #ii64 #ii128 #iisize
                 #uu8 #uu16 #uu32 #uu64 #uu128 #uusize
                 """,
+                // Explicit Literal wrappers preserve sub-word integer and 32-bit float widths under Kotlin/JS Any erasure.
                 mapOf(
-                    "ii8" to ii8,
-                    "ii16" to ii16,
+                    "ii8" to Literal.i8Suffixed(ii8),
+                    "ii16" to Literal.i16Suffixed(ii16),
                     "ii32" to ii32,
                     "ii64" to ii64,
                     "ii128" to ii128,
@@ -377,7 +378,7 @@ class QuoteTest {
     fun testFloating() {
         val e32 = 2.345f
         val e64 = 2.345
-        val tokens = quote("#e32 #e64", "e32" to e32, "e64" to e64)
+        val tokens = quote("#e32 #e64", "e32" to Literal.f32Suffixed(e32), "e64" to e64)
         assertEquals("2.345f32 2.345f64", tokens.toString())
     }
 
