@@ -17,7 +17,7 @@ public fun DelimSpan.span(): Span = this.join()
 public fun <T : ToTokens> T.span(): Span = joinSpans(TokenStream.new().also { tokens -> this.toTokens(tokens) })
 
 public fun joinSpans(tokens: TokenStream): Span {
-    var iter = ArrayDeque((ArrayDeque((tokens).toList())).map({ tt -> tt.span() }))
+    val iter = ArrayDeque((ArrayDeque((tokens).toList())).map({ tt -> tt.span() }))
     val first = iter.removeFirstOrNull() ?: return Span.callSite()
     return (iter.lastOrNull()?.let({ last -> first.join(last) }) ?: first)
 }
