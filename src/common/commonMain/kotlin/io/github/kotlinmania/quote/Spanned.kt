@@ -14,7 +14,7 @@ public fun Span.span(): Span = this
 
 public fun DelimSpan.span(): Span = this.join()
 
-public fun <T : ToTokens> T.span(): Span = joinSpans(this.intoTokenStream())
+public fun <T : ToTokens> T.span(): Span = joinSpans(this.toTokenStream())
 
 private fun joinSpans(tokens: TokenStream): Span {
     val iter = tokens.asSequence().map { tt -> tt.span() }.iterator()

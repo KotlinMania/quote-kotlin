@@ -49,4 +49,26 @@ class SpannedTest {
         val delimiter = Group(Delimiter.Parenthesis, TokenStream.new()).delimSpan()
         assertEquals(delimiter.join().byteRange(), getSpan(delimiter).deref().intoSpan().byteRange())
     }
+
+    @Test
+    fun sharedSpanDispatchDoesNotInvokeOwnedIntoTokenStreamOverride() {
+        val stream = TokenStream.fromString("alpha beta").getOrThrow()
+        val trees = stream.clone().toList()
+        var ownedCalled = false
+        val value =
+            object : ToTokens {
+                override fun toTokens(tokens: TokenStream) {
+                    stream.toTokens(tokens)
+                }
+
+                override fun intoTokenStream(): TokenStream {
+                    ownedCalled = true
+                    error("shared &self span() must dispatch through toTokenStream(), not owned intoTokenStream()")
+                }
+            }
+        val first = trees.first().span()
+        val expected = first.join(trees.last().span()) ?: first
+        assertEquals(expected.byteRange(), value.span().byteRange())
+        assertEquals(false, ownedCalled)
+    }
 }
