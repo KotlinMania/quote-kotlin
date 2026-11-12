@@ -1,5 +1,6 @@
 @file:OptIn(
     ExperimentalKotlinGradlePluginApi::class,
+    KotlinNativeCacheApi::class,
     org.jetbrains.kotlin.gradle.swiftexport.ExperimentalSwiftExportDsl::class,
 )
 
@@ -33,6 +34,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.AbstractExecutable
+import org.jetbrains.kotlin.gradle.plugin.mpp.DisableCacheInKotlinVersion
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeCacheApi
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.swiftexport.SwiftExportedModuleMetadata
@@ -600,6 +603,25 @@ kotlin {
             // allWarningsAsErrors = true for all source compilations and all other bridge diagnostics.
             compilerOptions.freeCompilerArgs.add("-Xwarning-level=UNCHECKED_CAST:disabled")
         }
+
+    targets.withType<KotlinNativeTarget>().configureEach {
+        if (konanTarget.family.isAppleFamily) {
+            binaries.configureEach {
+                val isStaticArchive =
+                    this is org.jetbrains.kotlin.gradle.plugin.mpp.StaticLibrary ||
+                        (this is org.jetbrains.kotlin.gradle.plugin.mpp.Framework && isStatic)
+                if (buildType == org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.DEBUG && !isStaticArchive) {
+                    // Kotlin/Native 2.4.21's stdlib-per-file-cache archives emit Mach-O N_AST stabs
+                    // ('...a(...a.o)') under Xcode 26 ld, causing dsymutil 'could not open' warnings
+                    // on every Debug link while retaining full DWARF symbols when cache is disabled.
+                    disableNativeCache(
+                        version = DisableCacheInKotlinVersion.`2_4_21`,
+                        reason = "Prevent Xcode 26 dsymutil N_AST 'could not open' warnings from stdlib-per-file-cache",
+                    )
+                }
+            }
+        }
+    }
 
     if (nativeReleaseLinkFreeCompilerArgs.isNotEmpty()) {
         tasks
