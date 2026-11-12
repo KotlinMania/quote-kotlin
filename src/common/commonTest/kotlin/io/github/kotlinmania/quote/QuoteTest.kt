@@ -511,8 +511,8 @@ class QuoteTest {
     fun testVariableNameConflict() {
         // The comma-separated repetition implementation uses the variable _i but it should be
         // fine, if a little confusing when debugging.
-        val _i = listOf('a', 'b')
-        val tokens = quote("#(#_i),*", "_i" to _i)
+        val items = listOf('a', 'b')
+        val tokens = quote("#(#_i),*", "_i" to items)
         assertEquals("'a' , 'b'", tokens.toString())
         // Rust macro hygiene is not reproduced by Kotlin template lookup; only the original variable-name input is exercised.
     }
