@@ -432,7 +432,7 @@ private class QuoteParser(
             is UInt -> value.toTokens(out)
             is ULong -> value.toTokens(out)
             is Boolean -> value.toTokens(out)
-            is Char -> value.toTokens(out)
+            is Char -> value.toCharTokens(out)
             is ByteArray -> value.toTokens(out)
             is Number -> emitBoxedNumber(out, value)
             is Iterable<*> -> {

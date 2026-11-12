@@ -145,7 +145,7 @@ public fun Double.toTokens(tokens: TokenStream) {
 }
 
 /** Appends this [Char] as a character [Literal] to [tokens]. */
-public fun Char.toTokens(tokens: TokenStream) {
+public fun Char.toCharTokens(tokens: TokenStream) {
     tokens.append(Literal.character(this))
 }
 
