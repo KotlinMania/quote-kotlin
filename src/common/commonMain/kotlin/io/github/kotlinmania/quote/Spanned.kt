@@ -10,11 +10,15 @@ public interface Spanned {
     public fun span(): Span
 }
 
-public fun Span.span(): Span = this
+public fun Span.span(): Span = this.clone()
 
 public fun DelimSpan.span(): Span = this.join()
 
-public fun <T : ToTokens> T.span(): Span = joinSpans(this.toTokenStream())
+public fun <T : ToTokens> T.span(): Span {
+    val tokens = TokenStream.new()
+    this.toTokens(tokens)
+    return joinSpans(tokens)
+}
 
 private fun joinSpans(tokens: TokenStream): Span {
     val iter = tokens.asSequence().map { tt -> tt.span() }.iterator()
