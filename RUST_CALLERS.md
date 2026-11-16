@@ -16,15 +16,15 @@ For every Rust crate this repo owns (under `tmp/`), this file lists every **cros
 
 | package | module | inbound use sites | distinct caller crates | distinct caller repos | codex sites |
 |---|---|---:|---:|---:|---:|
-| `quote` | `quote` | 217 | 16 | 10 | 1 |
+| `quote` | `quote` | 338 | 31 | 17 | 1 |
 
 ## `quote`
 
-### Inbound symbols (8 distinct, 217 total `use` sites)
+### Inbound symbols (8 distinct, 338 total `use` sites)
 
 Sorted by codex demand, then total demand. The first symbols are the priority queue for porting `quote`.
 
-#### `quote::quote` — 90 site(s) (1 codex, 89 other, 14 caller crates)
+#### `quote::quote` — 139 site(s) (1 codex, 138 other, 24 caller crates)
 
 - ✅ `codex-kotlin/codex-experimental-api-macros` `src/lib.rs:3` — `use quote::quote`
 - `async-trait-kotlin/async-trait` `src/bound.rs:2` — `use quote::quote`
@@ -34,13 +34,13 @@ Sorted by codex demand, then total demand. The first symbols are the priority qu
 - `futures-kotlin/futures-macro` `src/join.rs:5` — `use quote::quote`
 - `futures-kotlin/futures-macro` `src/select.rs:5` — `use quote::quote`
 - `futures-kotlin/futures-macro` `src/stream_select.rs:2` — `use quote::quote`
-- `logos-kotlin/logos-codegen` `src/error.rs:2` — `use quote::quote`
-- `logos-kotlin/logos-codegen` `src/generator/fast_loop.rs:2` — `use quote::quote`
-- `logos-kotlin/logos-codegen` `src/generator/fork.rs:4` — `use quote::quote`
-- `logos-kotlin/logos-codegen` `src/generator/leaf.rs:2` — `use quote::quote`
-- _… and 78 more site(s)._
+- `gazebo-kotlin/dupe_derive` `src/clone.rs:1` — `use quote::quote`
+- `gazebo-kotlin/dupe_derive` `src/copy.rs:1` — `use quote::quote`
+- `gazebo-kotlin/dupe_derive` `src/dupe.rs:4` — `use quote::quote`
+- `gazebo-kotlin/dupe_derive` `src/util.rs:6` — `use quote::quote`
+- _… and 127 more site(s)._
 
-#### `quote::ToTokens` — 67 site(s) (0 codex, 67 other, 12 caller crates)
+#### `quote::ToTokens` — 99 site(s) (0 codex, 99 other, 20 caller crates)
 
 - `async-trait-kotlin/async-trait` `src/bound.rs:2` — `use quote::ToTokens`
 - `async-trait-kotlin/async-trait` `src/expand.rs:7` — `use quote::ToTokens`
@@ -52,57 +52,57 @@ Sorted by codex demand, then total demand. The first symbols are the priority qu
 - `logos-kotlin/logos-codegen` `src/lib.rs:34` — `use quote::ToTokens`
 - `logos-kotlin/logos-codegen` `src/parser/mod.rs:137` — `use quote::ToTokens`
 - `logos-kotlin/logos-codegen` `src/util.rs:2` — `use quote::ToTokens`
-- `serde-kotlin/serde_derive` `src/de.rs:8` — `use quote::ToTokens`
-- `serde-kotlin/serde_derive` `src/de/identifier.rs:10` — `use quote::ToTokens`
-- _… and 55 more site(s)._
+- `prometheus-kotlin/prometheus-static-metric` `src/auto_flush_builder.rs:7` — `use quote::ToTokens`
+- `pyo3-kotlin/pyo3-macros-backend` `src/attributes.rs:2` — `use quote::ToTokens`
+- _… and 87 more site(s)._
 
-#### `quote::quote_spanned` — 22 site(s) (0 codex, 22 other, 9 caller crates)
+#### `quote::quote_spanned` — 39 site(s) (0 codex, 39 other, 13 caller crates)
 
 - `async-trait-kotlin/async-trait` `src/expand.rs:7` — `use quote::quote_spanned`
+- `criterion-kotlin/criterion-macro` `src/lib.rs:4` — `use quote::quote_spanned`
 - `futures-kotlin/futures-macro` `src/executor.rs:3` — `use quote::quote_spanned`
+- `gazebo-kotlin/gazebo_derive` `src/default.rs:5` — `use quote::quote_spanned`
 - `logos-kotlin/logos-codegen` `src/error.rs:3` — `use quote::quote_spanned`
-- `serde-kotlin/serde_derive` `src/de.rs:8` — `use quote::quote_spanned`
-- `serde-kotlin/serde_derive` `src/de/enum_adjacently.rs:15` — `use quote::quote_spanned`
-- `serde-kotlin/serde_derive` `src/de/enum_externally.rs:19` — `use quote::quote_spanned`
-- `serde-kotlin/serde_derive` `src/de/enum_untagged.rs:18` — `use quote::quote_spanned`
-- `serde-kotlin/serde_derive` `src/de/struct_.rs:13` — `use quote::quote_spanned`
-- `serde-kotlin/serde_derive` `src/de/tuple.rs:9` — `use quote::quote_spanned`
-- `serde-kotlin/serde_derive` `src/ser.rs:9` — `use quote::quote_spanned`
-- `starlark-kotlin/allocative_derive` `src/derive_allocative.rs:7` — `use quote::quote_spanned`
-- `starlark-kotlin/allocative_derive` `src/root.rs:4` — `use quote::quote_spanned`
-- _… and 10 more site(s)._
+- `pyo3-kotlin/pyo3-macros-backend` `src/frompyobject.rs:7` — `use quote::quote_spanned`
+- `pyo3-kotlin/pyo3-macros-backend` `src/intopyobject.rs:7` — `use quote::quote_spanned`
+- `pyo3-kotlin/pyo3-macros-backend` `src/method.rs:6` — `use quote::quote_spanned`
+- `pyo3-kotlin/pyo3-macros-backend` `src/module.rs:23` — `use quote::quote_spanned`
+- `pyo3-kotlin/pyo3-macros-backend` `src/params.rs:9` — `use quote::quote_spanned`
+- `pyo3-kotlin/pyo3-macros-backend` `src/pyclass.rs:5` — `use quote::quote_spanned`
+- `pyo3-kotlin/pyo3-macros-backend` `src/pymethod.rs:20` — `use quote::quote_spanned`
+- _… and 27 more site(s)._
 
-#### `quote::TokenStreamExt` — 20 site(s) (0 codex, 20 other, 6 caller crates)
+#### `quote::TokenStreamExt` — 29 site(s) (0 codex, 29 other, 10 caller crates)
 
 - `async-trait-kotlin/async-trait` `src/verbatim.rs:2` — `use quote::TokenStreamExt`
 - `logos-kotlin/logos-codegen` `src/error.rs:3` — `use quote::TokenStreamExt`
 - `logos-kotlin/logos-codegen` `src/generator/fork.rs:4` — `use quote::TokenStreamExt`
+- `prometheus-kotlin/prometheus-static-metric` `src/auto_flush_builder.rs:7` — `use quote::TokenStreamExt`
+- `prometheus-kotlin/prometheus-static-metric` `src/builder.rs:7` — `use quote::TokenStreamExt`
+- `pyo3-kotlin/pyo3-macros-backend` `src/utils.rs:3` — `use quote::TokenStreamExt`
+- `rust-lang-kotlin/stdarch-gen-arm` `src/assert_instr.rs:2` — `use quote::TokenStreamExt`
+- `rust-lang-kotlin/stdarch-gen-arm` `src/expression.rs:3` — `use quote::TokenStreamExt`
+- `rust-lang-kotlin/stdarch-gen-arm` `src/intrinsic.rs:3` — `use quote::TokenStreamExt`
+- `rust-lang-kotlin/stdarch-gen-arm` `src/typekinds.rs:2` — `use quote::TokenStreamExt`
+- `rust-lang-kotlin/stdarch-gen-arm` `src/wildstring.rs:3` — `use quote::TokenStreamExt`
 - `serde-kotlin/serde_derive` `src/lib.rs:79` — `use quote::TokenStreamExt as _`
-- `starlark-kotlin/starlark_derive` `src/module/simple_param.rs:5` — `use quote::TokenStreamExt`
-- `syn-kotlin/syn` `src/data.rs:380` — `use quote::TokenStreamExt as _`
-- `syn-kotlin/syn` `src/export.rs:70` — `pub_use quote::TokenStreamExt`
-- `syn-kotlin/syn` `src/expr.rs:3154` — `use quote::TokenStreamExt as _`
-- `syn-kotlin/syn` `src/file.rs:119` — `use quote::TokenStreamExt as _`
-- `syn-kotlin/syn` `src/generics.rs:1162` — `use quote::TokenStreamExt as _`
-- `syn-kotlin/syn` `src/item.rs:2953` — `use quote::TokenStreamExt as _`
-- `syn-kotlin/syn` `src/lifetime.rs:146` — `use quote::TokenStreamExt as _`
-- _… and 8 more site(s)._
+- _… and 17 more site(s)._
 
-#### `quote::format_ident` — 15 site(s) (0 codex, 15 other, 6 caller crates)
+#### `quote::format_ident` — 29 site(s) (0 codex, 29 other, 9 caller crates)
 
 - `async-trait-kotlin/async-trait` `src/expand.rs:7` — `use quote::format_ident`
 - `futures-kotlin/futures-macro` `src/join.rs:5` — `use quote::format_ident`
 - `futures-kotlin/futures-macro` `src/select.rs:5` — `use quote::format_ident`
 - `futures-kotlin/futures-macro` `src/stream_select.rs:2` — `use quote::format_ident`
-- `serde-kotlin/serde_derive` `src/pretend.rs:4` — `use quote::format_ident`
-- `starlark-kotlin/starlark_derive` `src/bc.rs:8` — `use quote::format_ident`
-- `starlark-kotlin/starlark_derive` `src/coerce.rs:7` — `use quote::format_ident`
-- `starlark-kotlin/starlark_derive` `src/module/render.rs:7` — `use quote::format_ident`
-- `strum-macros-kotlin/strum_macros` `src/macros/enum_is.rs:3` — `use quote::format_ident`
-- `strum-macros-kotlin/strum_macros` `src/macros/enum_table.rs:2` — `use quote::format_ident`
-- `strum-macros-kotlin/strum_macros` `src/macros/enum_try_as.rs:3` — `use quote::format_ident`
-- `strum-macros-kotlin/strum_macros` `src/macros/from_repr.rs:2` — `use quote::format_ident`
-- _… and 3 more site(s)._
+- `pyo3-kotlin/pyo3-macros-backend` `src/frompyobject.rs:7` — `use quote::format_ident`
+- `pyo3-kotlin/pyo3-macros-backend` `src/intopyobject.rs:7` — `use quote::format_ident`
+- `pyo3-kotlin/pyo3-macros-backend` `src/introspection.rs:16` — `use quote::format_ident`
+- `pyo3-kotlin/pyo3-macros-backend` `src/params.rs:9` — `use quote::format_ident`
+- `pyo3-kotlin/pyo3-macros-backend` `src/py_expr.rs:5` — `use quote::format_ident`
+- `pyo3-kotlin/pyo3-macros-backend` `src/pyclass.rs:5` — `use quote::format_ident`
+- `pyo3-kotlin/pyo3-macros-backend` `src/pyfunction.rs:19` — `use quote::format_ident`
+- `pyo3-kotlin/pyo3-macros-backend` `src/pyimpl.rs:22` — `use quote::format_ident`
+- _… and 17 more site(s)._
 
 #### `quote` — 1 site(s) (0 codex, 1 other, 1 caller crates)
 

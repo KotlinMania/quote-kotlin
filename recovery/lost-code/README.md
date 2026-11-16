@@ -15,9 +15,9 @@ This directory records objects that were unreachable before the recovery pass on
 The reachable `origin/main` state already contains the source work from the
 port commits:
 
-- `src/commonMain/kotlin/io/github/kotlinmania/quote/Ext.kt`
-- `src/commonMain/kotlin/io/github/kotlinmania/quote/ToTokens.kt`
-- `src/commonMain/kotlin/io/github/kotlinmania/quote/Spanned.kt`
+- `src/common/commonMain/kotlin/io/github/kotlinmania/quote/Ext.kt`
+- `src/common/commonMain/kotlin/io/github/kotlinmania/quote/ToTokens.kt`
+- `src/common/commonMain/kotlin/io/github/kotlinmania/quote/Spanned.kt`
 
 Those files were byte-for-byte identical to the recovered commit
 `74007579a23f38270781ece8d986e7146c848897`, so duplicate source rows were
