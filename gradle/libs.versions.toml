@@ -12,7 +12,7 @@ ktlintEngine = "1.8.0"
 kotlinxBenchmark = "0.5.0"
 procMacro2 = "0.1.8"
 procMacro = "0.1.5"
-btree = "0.2.3"
+btree = "0.2.4"
 
 [plugins]
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "androidKmp" }
