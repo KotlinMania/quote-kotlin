@@ -1385,6 +1385,15 @@ val hostIsArm64ForAndroidNative =
         .lowercase()
         .let { it == "aarch64" || it == "arm64" }
 
+val macHasHypervisorSupport =
+    !System.getProperty("os.name", "").lowercase().contains("mac") ||
+        ProcessBuilder("/usr/sbin/sysctl", "-n", "kern.hv_support")
+            .start()
+            .let { proc ->
+                val out = proc.inputStream.bufferedReader().readText().trim()
+                proc.waitFor() == 0 && out == "1"
+            }
+
 val androidNativeAdbExecutable =
     rootProject.file(
         ".android-sdk/platform-tools/" +
@@ -1415,8 +1424,9 @@ val androidNativeRuntimeTasks =
                     .asFile.absolutePath,
             )
             val isHostMatchingAbi =
-                (target == "androidNativeArm64" && hostIsArm64ForAndroidNative) ||
-                    (target == "androidNativeX64" && !hostIsArm64ForAndroidNative)
+                ((target == "androidNativeArm64" && hostIsArm64ForAndroidNative) ||
+                    (target == "androidNativeX64" && !hostIsArm64ForAndroidNative)) &&
+                    macHasHypervisorSupport
             if (!isHostMatchingAbi) {
                 arguments.add("--allow-unavailable")
             }
